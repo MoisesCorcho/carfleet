@@ -1,0 +1,20 @@
+# Git hooks via Lefthook for CarFleet.
+# pre-commit: auto-fix style (Pint on dirty PHP files)
+# pre-push: style check (no fix) + full test suite via Sail
+# Skip once: LEFTHOOK=0 git commit | git push --no-verify
+
+pre-commit:
+  parallel: false
+  commands:
+    pint:
+      glob: "*.php"
+      run: ./vendor/bin/sail pint --dirty
+      stage_fixed: true
+
+pre-push:
+  parallel: false
+  commands:
+    pint:
+      run: ./vendor/bin/sail pint --dirty --test
+    tests:
+      run: ./vendor/bin/sail test

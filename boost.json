@@ -1,0 +1,22 @@
+{
+    "agents": [
+        "antigravity",
+        "claude_code",
+        "opencode"
+    ],
+    "cloud": false,
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch": false,
+    "packages": [
+        "filament/filament"
+    ],
+    "sail": true,
+    "skills": [
+        "filament-admin-standards",
+        "infer-conventions",
+        "laravel-best-practices",
+        "laravel-security",
+        "tailwindcss-development"
+    ]
+}
