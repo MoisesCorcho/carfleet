@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\DTOs\Vehicles;
 
 use App\Enums\Vehicles\FuelTypeEnum;
+use App\Enums\Vehicles\ServiceTypeEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
+use App\Enums\Vehicles\VehicleTypeEnum;
 
 readonly class UpsertVehicleDTO
 {
@@ -15,6 +17,8 @@ readonly class UpsertVehicleDTO
         public string $model,
         public int $year,
         public int $currentMileage,
+        public VehicleTypeEnum $vehicleType = VehicleTypeEnum::CAMIONETA,
+        public ServiceTypeEnum $serviceType = ServiceTypeEnum::PUBLICO,
         public VehicleStatusEnum $status = VehicleStatusEnum::DISPONIBLE,
         public FuelTypeEnum $fuelType = FuelTypeEnum::GASOLINA,
         public ?string $notes = null,
@@ -39,12 +43,30 @@ readonly class UpsertVehicleDTO
             default => FuelTypeEnum::GASOLINA,
         };
 
+        $vehicleType = match (true) {
+            isset($data['vehicle_type']) && $data['vehicle_type'] instanceof VehicleTypeEnum => $data['vehicle_type'],
+            isset($data['vehicleType']) && $data['vehicleType'] instanceof VehicleTypeEnum => $data['vehicleType'],
+            isset($data['vehicle_type']) && is_string($data['vehicle_type']) => VehicleTypeEnum::from($data['vehicle_type']),
+            isset($data['vehicleType']) && is_string($data['vehicleType']) => VehicleTypeEnum::from($data['vehicleType']),
+            default => VehicleTypeEnum::CAMIONETA,
+        };
+
+        $serviceType = match (true) {
+            isset($data['service_type']) && $data['service_type'] instanceof ServiceTypeEnum => $data['service_type'],
+            isset($data['serviceType']) && $data['serviceType'] instanceof ServiceTypeEnum => $data['serviceType'],
+            isset($data['service_type']) && is_string($data['service_type']) => ServiceTypeEnum::from($data['service_type']),
+            isset($data['serviceType']) && is_string($data['serviceType']) => ServiceTypeEnum::from($data['serviceType']),
+            default => ServiceTypeEnum::PUBLICO,
+        };
+
         return new self(
             plateNumber: strtoupper(trim((string) ($data['plate_number'] ?? $data['plateNumber'] ?? ''))),
             brand: trim((string) ($data['brand'] ?? '')),
             model: trim((string) ($data['model'] ?? '')),
             year: (int) ($data['year'] ?? 0),
             currentMileage: (int) ($data['current_mileage'] ?? $data['currentMileage'] ?? 0),
+            vehicleType: $vehicleType,
+            serviceType: $serviceType,
             status: $status,
             fuelType: $fuelType,
             notes: isset($data['notes']) ? (is_string($data['notes']) ? trim($data['notes']) : null) : null,
@@ -61,6 +83,8 @@ readonly class UpsertVehicleDTO
             'brand' => $this->brand,
             'model' => $this->model,
             'year' => $this->year,
+            'vehicle_type' => $this->vehicleType,
+            'service_type' => $this->serviceType,
             'current_mileage' => $this->currentMileage,
             'status' => $this->status,
             'fuel_type' => $this->fuelType,

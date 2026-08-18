@@ -18,8 +18,10 @@ return new class extends Migration
             $table->string('document_number', 32);
             $table->string('phone', 32);
             $table->string('license_number', 32)->unique();
+            $table->string('license_category', 8)->default('C1');
             $table->date('license_expires_at')->nullable();
             $table->string('status', 32)->default('activo');
+            $table->softDeletes();
             $table->timestamps();
 
             $table->unique(['document_type', 'document_number']);

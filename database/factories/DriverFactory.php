@@ -6,6 +6,7 @@ namespace Database\Factories;
 
 use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
+use App\Enums\Drivers\LicenseCategoryEnum;
 use App\Models\Driver;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -31,6 +32,7 @@ class DriverFactory extends Factory
             'document_number' => fake()->unique()->numerify('10########'),
             'phone' => fake()->numerify('+57 300 #######'),
             'license_number' => fake()->unique()->bothify('LIC-######'),
+            'license_category' => LicenseCategoryEnum::C1,
             'license_expires_at' => fake()->dateTimeBetween('+6 months', '+5 years')->format('Y-m-d'),
             'status' => DriverStatusEnum::ACTIVO,
         ];
@@ -40,6 +42,13 @@ class DriverFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'document_type' => $type,
+        ]);
+    }
+
+    public function withLicenseCategory(LicenseCategoryEnum $category): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'license_category' => $category,
         ]);
     }
 

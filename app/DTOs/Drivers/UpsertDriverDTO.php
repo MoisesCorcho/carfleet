@@ -6,6 +6,7 @@ namespace App\DTOs\Drivers;
 
 use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
+use App\Enums\Drivers\LicenseCategoryEnum;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
 
@@ -18,6 +19,7 @@ readonly class UpsertDriverDTO
         public string $documentNumber,
         public string $phone,
         public string $licenseNumber,
+        public LicenseCategoryEnum $licenseCategory = LicenseCategoryEnum::C1,
         public ?string $licenseExpiresAt = null,
         public DriverStatusEnum $status = DriverStatusEnum::ACTIVO,
     ) {}
@@ -41,6 +43,14 @@ readonly class UpsertDriverDTO
             default => DocumentTypeEnum::CC,
         };
 
+        $licenseCategory = match (true) {
+            isset($data['license_category']) && $data['license_category'] instanceof LicenseCategoryEnum => $data['license_category'],
+            isset($data['licenseCategory']) && $data['licenseCategory'] instanceof LicenseCategoryEnum => $data['licenseCategory'],
+            isset($data['license_category']) && is_string($data['license_category']) => LicenseCategoryEnum::from($data['license_category']),
+            isset($data['licenseCategory']) && is_string($data['licenseCategory']) => LicenseCategoryEnum::from($data['licenseCategory']),
+            default => LicenseCategoryEnum::C1,
+        };
+
         $expiresAt = null;
         $rawExpires = $data['license_expires_at'] ?? $data['licenseExpiresAt'] ?? null;
         if ($rawExpires instanceof DateTimeInterface) {
@@ -56,6 +66,7 @@ readonly class UpsertDriverDTO
             documentNumber: strtoupper(trim((string) ($data['document_number'] ?? $data['documentNumber'] ?? ''))),
             phone: trim((string) ($data['phone'] ?? '')),
             licenseNumber: strtoupper(trim((string) ($data['license_number'] ?? $data['licenseNumber'] ?? ''))),
+            licenseCategory: $licenseCategory,
             licenseExpiresAt: $expiresAt,
             status: $status,
         );
@@ -73,6 +84,7 @@ readonly class UpsertDriverDTO
             'document_number' => $this->documentNumber,
             'phone' => $this->phone,
             'license_number' => $this->licenseNumber,
+            'license_category' => $this->licenseCategory,
             'license_expires_at' => $this->licenseExpiresAt,
             'status' => $this->status,
         ];

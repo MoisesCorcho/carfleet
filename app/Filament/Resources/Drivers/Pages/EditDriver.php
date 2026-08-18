@@ -10,6 +10,8 @@ use App\Exceptions\Drivers\InvalidDriverException;
 use App\Filament\Resources\Drivers\DriverResource;
 use App\Models\Driver;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\RestoreAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -25,6 +27,8 @@ class EditDriver extends EditRecord
         return [
             ViewAction::make(),
             DeleteAction::make(),
+            RestoreAction::make(),
+            ForceDeleteAction::make(),
         ];
     }
 

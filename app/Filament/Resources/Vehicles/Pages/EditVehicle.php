@@ -10,6 +10,8 @@ use App\Exceptions\Vehicles\InvalidMileageException;
 use App\Filament\Resources\Vehicles\VehicleResource;
 use App\Models\Vehicle;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\RestoreAction;
 use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -25,6 +27,8 @@ class EditVehicle extends EditRecord
         return [
             ViewAction::make(),
             DeleteAction::make(),
+            RestoreAction::make(),
+            ForceDeleteAction::make(),
         ];
     }
 
@@ -32,6 +36,7 @@ class EditVehicle extends EditRecord
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         /** @var Vehicle $record */
+        $data['current_mileage'] = $record->current_mileage;
         $dto = UpsertVehicleDTO::fromArray($data);
         $action = app(UpdateVehicleAction::class);
 

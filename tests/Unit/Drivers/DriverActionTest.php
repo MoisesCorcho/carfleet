@@ -7,6 +7,7 @@ use App\Actions\Drivers\UpdateDriverAction;
 use App\DTOs\Drivers\UpsertDriverDTO;
 use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
+use App\Enums\Drivers\LicenseCategoryEnum;
 use App\Exceptions\Drivers\InvalidDriverException;
 use App\Models\Driver;
 use App\Models\User;
@@ -22,6 +23,7 @@ test('upsert driver dto maps array correctly and normalizes fields', function ()
         'document_number' => '12345678',
         'phone' => ' 3001234567 ',
         'license_number' => 'lic-987654',
+        'license_category' => 'C1',
         'license_expires_at' => '2028-12-31',
         'status' => 'activo',
     ]);
@@ -32,13 +34,15 @@ test('upsert driver dto maps array correctly and normalizes fields', function ()
         ->and($dto->documentNumber)->toBe('12345678')
         ->and($dto->phone)->toBe('3001234567')
         ->and($dto->licenseNumber)->toBe('LIC-987654')
+        ->and($dto->licenseCategory)->toBe(LicenseCategoryEnum::C1)
         ->and($dto->licenseExpiresAt)->toBe('2028-12-31')
         ->and($dto->status)->toBe(DriverStatusEnum::ACTIVO);
 
     $array = $dto->toArray();
     expect($array['document_type'])->toBe(DocumentTypeEnum::CC)
         ->and($array['document_number'])->toBe('12345678')
-        ->and($array['license_number'])->toBe('LIC-987654');
+        ->and($array['license_number'])->toBe('LIC-987654')
+        ->and($array['license_category'])->toBe(LicenseCategoryEnum::C1);
 });
 
 test('registers driver successfully with action (R1)', function () {
@@ -52,6 +56,7 @@ test('registers driver successfully with action (R1)', function () {
         documentNumber: '98765432',
         phone: '+57 311 000 0000',
         licenseNumber: 'LIC-112233',
+        licenseCategory: LicenseCategoryEnum::C1,
         licenseExpiresAt: '2028-06-30',
         status: DriverStatusEnum::ACTIVO,
     );
@@ -63,6 +68,8 @@ test('registers driver successfully with action (R1)', function () {
         ->and($driver->full_name)->toBe('Juan Manuel Torres')
         ->and($driver->document_type)->toBe(DocumentTypeEnum::CC)
         ->and($driver->document_number)->toBe('98765432')
+        ->and($driver->license_category)->toBe(LicenseCategoryEnum::C1)
+        ->and($driver->canDrivePublicService())->toBeTrue()
         ->and($driver->formattedDocument())->toBe('CC 98765432')
         ->and($driver->phone)->toBe('+57 311 000 0000')
         ->and($driver->license_number)->toBe('LIC-112233')
@@ -74,6 +81,7 @@ test('registers driver successfully with action (R1)', function () {
         'document_type' => 'CC',
         'document_number' => '98765432',
         'license_number' => 'LIC-112233',
+        'license_category' => 'C1',
     ]);
 });
 
@@ -99,6 +107,7 @@ test('updates driver information with action (R3)', function () {
     $driver = Driver::factory()->create([
         'full_name' => 'Nombre Original',
         'document_type' => DocumentTypeEnum::CC,
+        'license_category' => LicenseCategoryEnum::C1,
         'phone' => '+57 300 111 2233',
         'status' => DriverStatusEnum::ACTIVO,
     ]);
@@ -111,6 +120,7 @@ test('updates driver information with action (R3)', function () {
         documentNumber: $driver->document_number,
         phone: '+57 300 999 8877',
         licenseNumber: $driver->license_number,
+        licenseCategory: LicenseCategoryEnum::C2,
         licenseExpiresAt: '2029-01-01',
         status: DriverStatusEnum::SUSPENDIDO,
     );
@@ -119,6 +129,7 @@ test('updates driver information with action (R3)', function () {
 
     expect($updated->full_name)->toBe('Nombre Actualizado')
         ->and($updated->document_type)->toBe(DocumentTypeEnum::CE)
+        ->and($updated->license_category)->toBe(LicenseCategoryEnum::C2)
         ->and($updated->phone)->toBe('+57 300 999 8877')
         ->and($updated->status)->toBe(DriverStatusEnum::SUSPENDIDO);
 });

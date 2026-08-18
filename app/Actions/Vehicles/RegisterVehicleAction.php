@@ -28,6 +28,8 @@ class RegisterVehicleAction
                 'brand' => $dto->brand,
                 'model' => $dto->model,
                 'year' => $dto->year,
+                'vehicle_type' => $dto->vehicleType,
+                'service_type' => $dto->serviceType,
                 'current_mileage' => $dto->currentMileage,
                 'status' => $dto->status,
                 'fuel_type' => $dto->fuelType,

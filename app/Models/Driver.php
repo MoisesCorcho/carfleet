@@ -6,12 +6,14 @@ namespace App\Models;
 
 use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
+use App\Enums\Drivers\LicenseCategoryEnum;
 use Database\Factories\DriverFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -22,15 +24,17 @@ use Illuminate\Support\Carbon;
  * @property string $document_number
  * @property string $phone
  * @property string $license_number
+ * @property LicenseCategoryEnum $license_category
  * @property Carbon|null $license_expires_at
  * @property DriverStatusEnum $status
+ * @property Carbon|null $deleted_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
  */
 class Driver extends Model
 {
     /** @use HasFactory<DriverFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'user_id',
@@ -39,6 +43,7 @@ class Driver extends Model
         'document_number',
         'phone',
         'license_number',
+        'license_category',
         'license_expires_at',
         'status',
     ];
@@ -47,6 +52,7 @@ class Driver extends Model
     {
         return [
             'document_type' => DocumentTypeEnum::class,
+            'license_category' => LicenseCategoryEnum::class,
             'license_expires_at' => 'date',
             'status' => DriverStatusEnum::class,
         ];
@@ -94,6 +100,11 @@ class Driver extends Model
     public function isEligibleForTrip(): bool
     {
         return $this->isActive() && $this->hasValidLicense();
+    }
+
+    public function canDrivePublicService(): bool
+    {
+        return $this->license_category->isPublicService();
     }
 
     /**

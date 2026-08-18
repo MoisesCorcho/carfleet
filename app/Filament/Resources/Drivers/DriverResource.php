@@ -6,15 +6,21 @@ namespace App\Filament\Resources\Drivers;
 
 use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
+use App\Enums\Drivers\LicenseCategoryEnum;
 use App\Filament\Resources\Drivers\Pages\CreateDriver;
 use App\Filament\Resources\Drivers\Pages\EditDriver;
 use App\Filament\Resources\Drivers\Pages\ListDrivers;
 use App\Filament\Resources\Drivers\Pages\ViewDriver;
 use App\Models\Driver;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -27,6 +33,7 @@ use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rules\Unique;
@@ -77,16 +84,47 @@ class DriverResource extends Resource
                                     ->preload()
                                     ->required()
                                     ->unique(ignoreRecord: true)
-                                    ->helperText('Usuario del sistema asociado a las credenciales de acceso.'),
+                                    ->prefixIcon('heroicon-m-user')
+                                    ->createOptionForm([
+                                        TextInput::make('name')
+                                            ->label('Nombre del Usuario')
+                                            ->required()
+                                            ->maxLength(255),
+
+                                        TextInput::make('email')
+                                            ->label('Correo Electrónico')
+                                            ->email()
+                                            ->required()
+                                            ->unique('users', 'email'),
+
+                                        TextInput::make('password')
+                                            ->label('Contraseña de Acceso')
+                                            ->password()
+                                            ->default('password')
+                                            ->required(),
+                                    ])
+                                    ->createOptionUsing(function (array $data): int {
+                                        $user = User::create([
+                                            'name' => $data['name'],
+                                            'email' => $data['email'],
+                                            'password' => bcrypt($data['password']),
+                                        ]);
+                                        $user->assignRole('driver');
+
+                                        return $user->id;
+                                    })
+                                    ->helperText('Selecciona un usuario o créalo directamente con el botón "+".'),
 
                                 TextInput::make('full_name')
                                     ->label('Nombre Completo')
                                     ->placeholder('Ej: Carlos Andrés Rodríguez')
+                                    ->prefixIcon('heroicon-m-user')
                                     ->required()
                                     ->maxLength(128),
 
                                 Select::make('document_type')
                                     ->label('Tipo de Documento')
+                                    ->prefixIcon('heroicon-m-identification')
                                     ->options(collect(DocumentTypeEnum::cases())->mapWithKeys(
                                         fn (DocumentTypeEnum $type): array => [$type->value => $type->label()]
                                     )->all())
@@ -97,6 +135,7 @@ class DriverResource extends Resource
                                 TextInput::make('document_number')
                                     ->label('Número de Documento')
                                     ->placeholder('Ej: 1020304050')
+                                    ->prefixIcon('heroicon-m-identification')
                                     ->required()
                                     ->maxLength(32)
                                     ->unique(
@@ -110,6 +149,7 @@ class DriverResource extends Resource
                                 TextInput::make('phone')
                                     ->label('Teléfono de Contacto')
                                     ->placeholder('Ej: +57 300 123 4567 o 3001234567')
+                                    ->prefixIcon('heroicon-m-phone')
                                     ->tel()
                                     ->required()
                                     ->maxLength(32)
@@ -131,6 +171,7 @@ class DriverResource extends Resource
                                 TextInput::make('license_number')
                                     ->label('Número de Licencia')
                                     ->placeholder('Ej: LIC-87654321')
+                                    ->prefixIcon('heroicon-m-credit-card')
                                     ->required()
                                     ->maxLength(32)
                                     ->unique(ignoreRecord: true)
@@ -138,14 +179,26 @@ class DriverResource extends Resource
                                     ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state)))
                                     ->helperText('Número único de licencia de tránsito.'),
 
+                                Select::make('license_category')
+                                    ->label('Categoría de Licencia')
+                                    ->prefixIcon('heroicon-m-truck')
+                                    ->options(collect(LicenseCategoryEnum::cases())->mapWithKeys(
+                                        fn (LicenseCategoryEnum $category): array => [$category->value => $category->label()]
+                                    )->all())
+                                    ->default(LicenseCategoryEnum::C1->value)
+                                    ->required()
+                                    ->helperText('Categoría oficial del RUNT (B1..B3 Particular, C1..C3 Público).'),
+
                                 DatePicker::make('license_expires_at')
                                     ->label('Vencimiento de Licencia')
+                                    ->prefixIcon('heroicon-m-calendar-days')
                                     ->native(false)
                                     ->displayFormat('d/m/Y')
                                     ->helperText('Fecha de expiración legal del pase de conducción.'),
 
                                 Select::make('status')
                                     ->label('Estado Operacional')
+                                    ->prefixIcon('heroicon-m-check-circle')
                                     ->options(collect(DriverStatusEnum::cases())->mapWithKeys(
                                         fn (DriverStatusEnum $status): array => [$status->value => $status->label()]
                                     )->all())
@@ -154,7 +207,7 @@ class DriverResource extends Resource
                             ])
                             ->columns([
                                 'sm' => 1,
-                                'md' => 3,
+                                'md' => 2,
                             ])
                             ->columnSpanFull(),
                     ])
@@ -201,6 +254,12 @@ class DriverResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('license_category')
+                    ->label('Categoría')
+                    ->badge()
+                    ->color(fn (LicenseCategoryEnum $state): string => $state->color())
+                    ->sortable(),
+
                 TextColumn::make('license_expires_at')
                     ->label('Vencimiento Licencia')
                     ->date('d/m/Y')
@@ -235,6 +294,12 @@ class DriverResource extends Resource
                         fn (DocumentTypeEnum $type): array => [$type->value => $type->label()]
                     )->all()),
 
+                SelectFilter::make('license_category')
+                    ->label('Categoría de Licencia')
+                    ->options(collect(LicenseCategoryEnum::cases())->mapWithKeys(
+                        fn (LicenseCategoryEnum $category): array => [$category->value => $category->label()]
+                    )->all()),
+
                 Filter::make('eligible_for_trip')
                     ->label('Aptos para viaje (Activos y Vigentes)')
                     ->query(fn (Builder $query): Builder => $query->where('status', DriverStatusEnum::ACTIVO)
@@ -242,14 +307,20 @@ class DriverResource extends Resource
                             $q->whereNull('license_expires_at')
                                 ->orWhereDate('license_expires_at', '>=', now()->toDateString());
                         })),
+
+                TrashedFilter::make(),
             ])
             ->actions([
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
+                RestoreAction::make(),
+                ForceDeleteAction::make(),
             ])
             ->bulkActions([
                 DeleteBulkAction::make(),
+                RestoreBulkAction::make(),
+                ForceDeleteBulkAction::make(),
             ])
             ->emptyStateHeading('No hay conductores registrados')
             ->emptyStateDescription('Registra el primer conductor de la flota para comenzar.')

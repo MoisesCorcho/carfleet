@@ -30,6 +30,7 @@ class UpdateDriverAction
                 'document_number' => $dto->documentNumber,
                 'phone' => $dto->phone,
                 'license_number' => $dto->licenseNumber,
+                'license_category' => $dto->licenseCategory,
                 'license_expires_at' => $dto->licenseExpiresAt,
                 'status' => $dto->status,
             ]);

@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Actions\Vehicles\RegisterVehicleAction;
 use App\DTOs\Vehicles\UpsertVehicleDTO;
 use App\Enums\Vehicles\FuelTypeEnum;
+use App\Enums\Vehicles\ServiceTypeEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
+use App\Enums\Vehicles\VehicleTypeEnum;
 use App\Filament\Resources\Vehicles\Pages\CreateVehicle;
 use App\Filament\Resources\Vehicles\Pages\EditVehicle;
 use App\Filament\Resources\Vehicles\Pages\ListVehicles;
@@ -36,9 +38,9 @@ test('admin can access vehicles list in filament panel', function () {
 test('admin can filter vehicles by availability status (R2)', function () {
     $this->actingAs($this->adminUser);
 
-    $availableVehicle = Vehicle::factory()->available()->create(['plate_number' => 'DISP-01']);
-    $inTripVehicle = Vehicle::factory()->inTrip()->create(['plate_number' => 'TRIP-01']);
-    $maintenanceVehicle = Vehicle::factory()->maintenance()->create(['plate_number' => 'MAINT-01']);
+    $availableVehicle = Vehicle::factory()->available()->create(['plate_number' => 'DSP-101']);
+    $inTripVehicle = Vehicle::factory()->inTrip()->create(['plate_number' => 'TRP-101']);
+    $maintenanceVehicle = Vehicle::factory()->maintenance()->create(['plate_number' => 'MNT-101']);
 
     Livewire::test(ListVehicles::class)
         ->assertCanSeeTableRecords([$availableVehicle, $inTripVehicle, $maintenanceVehicle])
@@ -47,12 +49,27 @@ test('admin can filter vehicles by availability status (R2)', function () {
         ->assertCanNotSeeTableRecords([$inTripVehicle, $maintenanceVehicle]);
 });
 
+test('admin can filter vehicles by vehicle type and service type', function () {
+    $this->actingAs($this->adminUser);
+
+    $van = Vehicle::factory()->publicService()->withType(VehicleTypeEnum::VAN)->create(['plate_number' => 'VAN-101']);
+    $truck = Vehicle::factory()->particularService()->withType(VehicleTypeEnum::CAMION)->create(['plate_number' => 'CAM-101']);
+
+    Livewire::test(ListVehicles::class)
+        ->assertCanSeeTableRecords([$van, $truck])
+        ->filterTable('vehicle_type', VehicleTypeEnum::VAN->value)
+        ->assertCanSeeTableRecords([$van])
+        ->assertCanNotSeeTableRecords([$truck]);
+});
+
 test('admin can create a vehicle via filament form (R1)', function () {
     $this->actingAs($this->adminUser);
 
     Livewire::test(CreateVehicle::class)
         ->fillForm([
             'plate_number' => 'FLT-100',
+            'service_type' => ServiceTypeEnum::PUBLICO->value,
+            'vehicle_type' => VehicleTypeEnum::CAMIONETA->value,
             'brand' => 'Nissan',
             'model' => 'Frontier',
             'year' => 2024,
@@ -66,6 +83,8 @@ test('admin can create a vehicle via filament form (R1)', function () {
 
     $this->assertDatabaseHas('vehicles', [
         'plate_number' => 'FLT-100',
+        'service_type' => 'publico',
+        'vehicle_type' => 'camioneta',
         'brand' => 'Nissan',
         'model' => 'Frontier',
         'year' => 2024,
@@ -73,6 +92,20 @@ test('admin can create a vehicle via filament form (R1)', function () {
         'status' => 'disponible',
         'fuel_type' => 'diesel',
     ]);
+});
+
+test('rejects invalid Colombian plate format via form validation', function () {
+    $this->actingAs($this->adminUser);
+
+    Livewire::test(CreateVehicle::class)
+        ->fillForm([
+            'plate_number' => 'PLACA_INVALIDA_12345',
+            'brand' => 'Toyota',
+            'model' => 'Hilux',
+            'year' => 2024,
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['plate_number' => 'regex']);
 });
 
 test('rejects duplicate plate number registration (R4)', function () {
@@ -90,7 +123,7 @@ test('rejects duplicate plate number registration (R4)', function () {
     expect(fn () => $action($dto))->toThrow(QueryException::class);
 });
 
-test('admin can update vehicle information via action and edit page', function () {
+test('admin can update vehicle information via edit page preserving odometer', function () {
     $this->actingAs($this->adminUser);
 
     $vehicle = Vehicle::factory()->create([
@@ -104,7 +137,6 @@ test('admin can update vehicle information via action and edit page', function (
             'brand' => 'Toyota Updated',
             'model' => 'Hilux 4x4',
             'year' => 2024,
-            'current_mileage' => 12000,
             'status' => VehicleStatusEnum::MANTENIMIENTO->value,
             'fuel_type' => FuelTypeEnum::DIESEL->value,
         ])
@@ -114,7 +146,7 @@ test('admin can update vehicle information via action and edit page', function (
     $vehicle->refresh();
     expect($vehicle->brand)->toBe('Toyota Updated')
         ->and($vehicle->model)->toBe('Hilux 4x4')
-        ->and($vehicle->current_mileage)->toBe(12000)
+        ->and($vehicle->current_mileage)->toBe(10000)
         ->and($vehicle->status)->toBe(VehicleStatusEnum::MANTENIMIENTO);
 });
 

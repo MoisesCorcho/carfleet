@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
+use App\Enums\Drivers\LicenseCategoryEnum;
 use App\Filament\Resources\Drivers\Pages\CreateDriver;
 use App\Filament\Resources\Drivers\Pages\EditDriver;
 use App\Filament\Resources\Drivers\Pages\ListDrivers;
@@ -44,17 +45,17 @@ test('admin can filter drivers by operational status (R2)', function () {
         ->assertCanNotSeeTableRecords([$inactiveDriver, $suspendedDriver]);
 });
 
-test('admin can filter drivers by document type', function () {
+test('admin can filter drivers by document type and license category', function () {
     $this->actingAs($this->adminUser);
 
-    $ccDriver = Driver::factory()->withDocumentType(DocumentTypeEnum::CC)->create(['full_name' => 'Conductor CC']);
-    $ceDriver = Driver::factory()->withDocumentType(DocumentTypeEnum::CE)->create(['full_name' => 'Conductor CE']);
+    $c1Driver = Driver::factory()->withDocumentType(DocumentTypeEnum::CC)->withLicenseCategory(LicenseCategoryEnum::C1)->create(['full_name' => 'Conductor C1']);
+    $b1Driver = Driver::factory()->withDocumentType(DocumentTypeEnum::CE)->withLicenseCategory(LicenseCategoryEnum::B1)->create(['full_name' => 'Conductor B1']);
 
     Livewire::test(ListDrivers::class)
-        ->assertCanSeeTableRecords([$ccDriver, $ceDriver])
-        ->filterTable('document_type', DocumentTypeEnum::CC->value)
-        ->assertCanSeeTableRecords([$ccDriver])
-        ->assertCanNotSeeTableRecords([$ceDriver]);
+        ->assertCanSeeTableRecords([$c1Driver, $b1Driver])
+        ->filterTable('license_category', LicenseCategoryEnum::C1->value)
+        ->assertCanSeeTableRecords([$c1Driver])
+        ->assertCanNotSeeTableRecords([$b1Driver]);
 });
 
 test('admin can create a driver via filament form (R1)', function () {
@@ -70,6 +71,7 @@ test('admin can create a driver via filament form (R1)', function () {
             'document_number' => '1098765432',
             'phone' => '+57 320 987 6543',
             'license_number' => 'LIC-77665544',
+            'license_category' => LicenseCategoryEnum::C1->value,
             'license_expires_at' => now()->addYears(3)->format('Y-m-d'),
             'status' => DriverStatusEnum::ACTIVO->value,
         ])
@@ -83,6 +85,7 @@ test('admin can create a driver via filament form (R1)', function () {
         'document_number' => '1098765432',
         'phone' => '+57 320 987 6543',
         'license_number' => 'LIC-77665544',
+        'license_category' => 'C1',
         'status' => 'activo',
     ]);
 });
@@ -104,6 +107,7 @@ test('rejects duplicate document number of same document type via filament form 
             'document_number' => '12345678',
             'phone' => '+57 300 123 4567',
             'license_number' => 'LIC-999999',
+            'license_category' => LicenseCategoryEnum::C1->value,
             'status' => DriverStatusEnum::ACTIVO->value,
         ])
         ->call('create')
@@ -123,6 +127,7 @@ test('rejects invalid phone format with customized message', function () {
             'document_number' => '99887766',
             'phone' => 'telefono-invalido',
             'license_number' => 'LIC-11223344',
+            'license_category' => LicenseCategoryEnum::C1->value,
             'status' => DriverStatusEnum::ACTIVO->value,
         ])
         ->call('create')
@@ -143,6 +148,7 @@ test('rejects duplicate license number via filament form validation (R4)', funct
             'document_number' => '88888888',
             'phone' => '+57 300 123 4567',
             'license_number' => 'LIC-DUPLICADA',
+            'license_category' => LicenseCategoryEnum::C1->value,
             'status' => DriverStatusEnum::ACTIVO->value,
         ])
         ->call('create')
@@ -163,6 +169,7 @@ test('rejects duplicate user assignment via filament form validation (R5)', func
             'document_number' => '77777777',
             'phone' => '+57 300 123 4567',
             'license_number' => 'LIC-777777',
+            'license_category' => LicenseCategoryEnum::C1->value,
             'status' => DriverStatusEnum::ACTIVO->value,
         ])
         ->call('create')
@@ -175,6 +182,7 @@ test('admin can update driver information via edit page (R3)', function () {
     $driver = Driver::factory()->create([
         'full_name' => 'Conductor Original',
         'document_type' => DocumentTypeEnum::CC,
+        'license_category' => LicenseCategoryEnum::C1,
         'status' => DriverStatusEnum::ACTIVO,
     ]);
 
@@ -182,6 +190,7 @@ test('admin can update driver information via edit page (R3)', function () {
         ->fillForm([
             'full_name' => 'Conductor Modificado',
             'document_type' => DocumentTypeEnum::CE->value,
+            'license_category' => LicenseCategoryEnum::C2->value,
             'phone' => '+57 310 999 8877',
             'status' => DriverStatusEnum::SUSPENDIDO->value,
         ])
@@ -191,6 +200,7 @@ test('admin can update driver information via edit page (R3)', function () {
     $driver->refresh();
     expect($driver->full_name)->toBe('Conductor Modificado')
         ->and($driver->document_type)->toBe(DocumentTypeEnum::CE)
+        ->and($driver->license_category)->toBe(LicenseCategoryEnum::C2)
         ->and($driver->phone)->toBe('+57 310 999 8877')
         ->and($driver->status)->toBe(DriverStatusEnum::SUSPENDIDO);
 });

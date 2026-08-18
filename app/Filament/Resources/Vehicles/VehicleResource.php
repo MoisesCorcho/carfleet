@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Vehicles;
 
 use App\Enums\Vehicles\FuelTypeEnum;
+use App\Enums\Vehicles\ServiceTypeEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
+use App\Enums\Vehicles\VehicleTypeEnum;
 use App\Filament\Resources\Vehicles\Pages\CreateVehicle;
 use App\Filament\Resources\Vehicles\Pages\EditVehicle;
 use App\Filament\Resources\Vehicles\Pages\ListVehicles;
@@ -15,6 +17,10 @@ use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -26,6 +32,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Override;
 use UnitEnum;
@@ -64,33 +71,61 @@ class VehicleResource extends Resource
             ->components([
                 Grid::make()
                     ->schema([
-                        Section::make('Información del Vehículo')
-                            ->description('Datos básicos de identificación del recurso de transporte.')
+                        Section::make('Identificación y Características del Vehículo')
+                            ->description('Datos de registro oficial y carrocería según estándares de Colombia.')
                             ->schema([
                                 TextInput::make('plate_number')
-                                    ->label('Placa / Identificador')
-                                    ->placeholder('Ej: ABC-123')
+                                    ->label('Placa del Vehículo')
+                                    ->placeholder('Ej: ABC-123 o ABC123')
+                                    ->prefixIcon('heroicon-m-identification')
                                     ->required()
                                     ->maxLength(16)
+                                    ->regex('/^[A-Z]{3}-?[0-9]{3}$|^[A-Z]{3}-?[0-9]{2}[A-Z]$/')
+                                    ->validationMessages([
+                                        'regex' => 'La placa debe tener un formato válido colombiano (ej: ABC-123 o ABC123).',
+                                    ])
                                     ->unique(ignoreRecord: true)
                                     ->extraInputAttributes(['style' => 'text-transform: uppercase;'])
                                     ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state)))
-                                    ->helperText('Identificador alfanumérico único para la flota.'),
+                                    ->helperText('Placa oficial registrada ante el RUNT.'),
+
+                                Select::make('service_type')
+                                    ->label('Tipo de Servicio')
+                                    ->prefixIcon('heroicon-m-shield-check')
+                                    ->options(collect(ServiceTypeEnum::cases())->mapWithKeys(
+                                        fn (ServiceTypeEnum $service): array => [$service->value => $service->label()]
+                                    )->all())
+                                    ->default(ServiceTypeEnum::PUBLICO->value)
+                                    ->required()
+                                    ->helperText('Público (Placa Blanca empresarial) o Particular (Placa Amarilla).'),
+
+                                Select::make('vehicle_type')
+                                    ->label('Tipo de Carrocería')
+                                    ->prefixIcon('heroicon-m-truck')
+                                    ->options(collect(VehicleTypeEnum::cases())->mapWithKeys(
+                                        fn (VehicleTypeEnum $type): array => [$type->value => $type->label()]
+                                    )->all())
+                                    ->default(VehicleTypeEnum::CAMIONETA->value)
+                                    ->required()
+                                    ->helperText('Clasificación vehicular de la flota.'),
 
                                 TextInput::make('brand')
                                     ->label('Marca')
-                                    ->placeholder('Ej: Toyota, Chevrolet')
+                                    ->placeholder('Ej: Toyota, Chevrolet, Nissan')
+                                    ->prefixIcon('heroicon-m-tag')
                                     ->required()
                                     ->maxLength(64),
 
                                 TextInput::make('model')
-                                    ->label('Modelo')
-                                    ->placeholder('Ej: Hilux, D-Max')
+                                    ->label('Línea / Modelo')
+                                    ->placeholder('Ej: Hilux 4x4, D-Max, Frontier')
+                                    ->prefixIcon('heroicon-m-cube')
                                     ->required()
                                     ->maxLength(64),
 
                                 TextInput::make('year')
                                     ->label('Año de Fabricación')
+                                    ->prefixIcon('heroicon-m-calendar-days')
                                     ->numeric()
                                     ->required()
                                     ->minValue(1950)
@@ -99,24 +134,30 @@ class VehicleResource extends Resource
                             ])
                             ->columns([
                                 'sm' => 1,
-                                'md' => 2,
+                                'md' => 3,
                             ])
                             ->columnSpanFull(),
 
-                        Section::make('Operación y Combustible')
-                            ->description('Parámetros de kilometraje inicial y estado operacional.')
+                        Section::make('Operación y Odómetro')
+                            ->description('Parámetros de kilometraje inicial y estado operativo.')
                             ->schema([
                                 TextInput::make('current_mileage')
                                     ->label('Kilometraje Actual')
+                                    ->prefixIcon('heroicon-m-variable')
                                     ->numeric()
                                     ->required()
                                     ->minValue(0)
                                     ->default(0)
                                     ->suffix('km')
-                                    ->helperText('Lectura inicial del odómetro en kilómetros.'),
+                                    ->disabled(fn (string $operation): bool => $operation === 'edit')
+                                    ->helperText(fn (string $operation): string => $operation === 'edit'
+                                        ? 'Odómetro protegido: se actualiza automáticamente al registrar viajes o mantenimientos.'
+                                        : 'Lectura inicial del odómetro en kilómetros al registrar el vehículo.'
+                                    ),
 
                                 Select::make('status')
-                                    ->label('Estado Inicial')
+                                    ->label('Estado Operacional')
+                                    ->prefixIcon('heroicon-m-check-circle')
                                     ->options(collect(VehicleStatusEnum::cases())->mapWithKeys(
                                         fn (VehicleStatusEnum $status): array => [$status->value => $status->label()]
                                     )->all())
@@ -125,6 +166,7 @@ class VehicleResource extends Resource
 
                                 Select::make('fuel_type')
                                     ->label('Tipo de Combustible')
+                                    ->prefixIcon('heroicon-m-fire')
                                     ->options(collect(FuelTypeEnum::cases())->mapWithKeys(
                                         fn (FuelTypeEnum $fuel): array => [$fuel->value => $fuel->label()]
                                     )->all())
@@ -143,7 +185,7 @@ class VehicleResource extends Resource
                                     ->label('Notas Adicionales')
                                     ->rows(3)
                                     ->maxLength(1000)
-                                    ->placeholder('Especificaciones técnicas, detalles de carrocería o notas generales.'),
+                                    ->placeholder('Especificaciones técnicas, detalles de carrocería, pólizas o notas generales.'),
                             ])
                             ->columnSpanFull(),
                     ])
@@ -159,7 +201,7 @@ class VehicleResource extends Resource
                 TextColumn::make('plate_number')
                     ->label('Placa')
                     ->badge()
-                    ->color('gray')
+                    ->color(fn (Vehicle $record): string => $record->service_type === ServiceTypeEnum::PUBLICO ? 'warning' : 'gray')
                     ->weight(FontWeight::Bold)
                     ->searchable()
                     ->sortable()
@@ -174,6 +216,20 @@ class VehicleResource extends Resource
                 TextColumn::make('model')
                     ->label('Modelo')
                     ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('vehicle_type')
+                    ->label('Carrocería')
+                    ->badge()
+                    ->color('info')
+                    ->formatStateUsing(fn (VehicleTypeEnum $state): string => $state->label())
+                    ->sortable(),
+
+                TextColumn::make('service_type')
+                    ->label('Servicio')
+                    ->badge()
+                    ->color(fn (ServiceTypeEnum $state): string => $state->color())
+                    ->formatStateUsing(fn (ServiceTypeEnum $state): string => $state === ServiceTypeEnum::PUBLICO ? 'Público' : 'Particular')
                     ->sortable(),
 
                 TextColumn::make('year')
@@ -212,19 +268,37 @@ class VehicleResource extends Resource
                         fn (VehicleStatusEnum $status): array => [$status->value => $status->label()]
                     )->all()),
 
+                SelectFilter::make('vehicle_type')
+                    ->label('Tipo de Carrocería')
+                    ->options(collect(VehicleTypeEnum::cases())->mapWithKeys(
+                        fn (VehicleTypeEnum $type): array => [$type->value => $type->label()]
+                    )->all()),
+
+                SelectFilter::make('service_type')
+                    ->label('Tipo de Servicio')
+                    ->options(collect(ServiceTypeEnum::cases())->mapWithKeys(
+                        fn (ServiceTypeEnum $service): array => [$service->value => $service->label()]
+                    )->all()),
+
                 SelectFilter::make('fuel_type')
                     ->label('Tipo de Combustible')
                     ->options(collect(FuelTypeEnum::cases())->mapWithKeys(
                         fn (FuelTypeEnum $fuel): array => [$fuel->value => $fuel->label()]
                     )->all()),
+
+                TrashedFilter::make(),
             ])
             ->actions([
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
+                RestoreAction::make(),
+                ForceDeleteAction::make(),
             ])
             ->bulkActions([
                 DeleteBulkAction::make(),
+                RestoreBulkAction::make(),
+                ForceDeleteBulkAction::make(),
             ])
             ->emptyStateHeading('No hay vehículos registrados')
             ->emptyStateDescription('Registra el primer vehículo de la flota para comenzar.')

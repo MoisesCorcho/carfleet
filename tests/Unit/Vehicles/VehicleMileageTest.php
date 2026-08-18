@@ -6,14 +6,16 @@ use App\Actions\Vehicles\RegisterVehicleAction;
 use App\Actions\Vehicles\UpdateVehicleMileageAction;
 use App\DTOs\Vehicles\UpsertVehicleDTO;
 use App\Enums\Vehicles\FuelTypeEnum;
+use App\Enums\Vehicles\ServiceTypeEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
+use App\Enums\Vehicles\VehicleTypeEnum;
 use App\Exceptions\Vehicles\InvalidMileageException;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('registers vehicle with valid non-negative initial mileage', function () {
+test('registers vehicle with valid non-negative initial mileage and Colombian types', function () {
     $action = app(RegisterVehicleAction::class);
 
     $dto = new UpsertVehicleDTO(
@@ -22,6 +24,8 @@ test('registers vehicle with valid non-negative initial mileage', function () {
         model: 'Hilux',
         year: 2024,
         currentMileage: 1500,
+        vehicleType: VehicleTypeEnum::CAMIONETA,
+        serviceType: ServiceTypeEnum::PUBLICO,
         status: VehicleStatusEnum::DISPONIBLE,
         fuelType: FuelTypeEnum::DIESEL,
         notes: 'Vehículo nuevo de flota',
@@ -34,9 +38,13 @@ test('registers vehicle with valid non-negative initial mileage', function () {
         ->and($vehicle->brand)->toBe('Toyota')
         ->and($vehicle->model)->toBe('Hilux')
         ->and($vehicle->year)->toBe(2024)
+        ->and($vehicle->vehicle_type)->toBe(VehicleTypeEnum::CAMIONETA)
+        ->and($vehicle->service_type)->toBe(ServiceTypeEnum::PUBLICO)
         ->and($vehicle->current_mileage)->toBe(1500)
         ->and($vehicle->status)->toBe(VehicleStatusEnum::DISPONIBLE)
         ->and($vehicle->fuel_type)->toBe(FuelTypeEnum::DIESEL)
+        ->and($vehicle->isAvailable())->toBeTrue()
+        ->and($vehicle->isPublicService())->toBeTrue()
         ->and($vehicle->notes)->toBe('Vehículo nuevo de flota');
 });
 
@@ -97,4 +105,19 @@ test('rejects mileage update when new reading is negative', function () {
 
     expect(fn () => $action($vehicle, -100))
         ->toThrow(InvalidMileageException::class, 'El kilometraje inicial no puede ser negativo (-100 km).');
+});
+
+test('vehicle scopes filter available and in service vehicles', function () {
+    $avail = Vehicle::factory()->available()->create();
+    $inTrip = Vehicle::factory()->inTrip()->create();
+    $maint = Vehicle::factory()->maintenance()->create();
+    $decomm = Vehicle::factory()->decommissioned()->create();
+
+    $availablePlucks = Vehicle::query()->available()->pluck('id');
+    expect($availablePlucks)->toContain($avail->id)
+        ->and($availablePlucks)->not->toContain($inTrip->id, $maint->id, $decomm->id);
+
+    $inServicePlucks = Vehicle::query()->inService()->pluck('id');
+    expect($inServicePlucks)->toContain($avail->id, $inTrip->id)
+        ->and($inServicePlucks)->not->toContain($maint->id, $decomm->id);
 });
