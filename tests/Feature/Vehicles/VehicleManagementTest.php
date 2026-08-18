@@ -94,6 +94,28 @@ test('admin can create a vehicle via filament form (R1)', function () {
     ]);
 });
 
+test('admin can adjust vehicle odometer via table action modal', function () {
+    $this->actingAs($this->adminUser);
+
+    $vehicle = Vehicle::factory()->create([
+        'plate_number' => 'AJU-100',
+        'current_mileage' => 5000,
+        'notes' => 'Vehículo en servicio',
+    ]);
+
+    Livewire::test(ListVehicles::class)
+        ->callTableAction('adjustMileage', $vehicle, [
+            'new_mileage' => 5800,
+            'reason' => 'Ajuste por calibración de odómetro en taller autorizado',
+        ])
+        ->assertHasNoTableActionErrors();
+
+    $vehicle->refresh();
+    expect($vehicle->current_mileage)->toBe(5800)
+        ->and($vehicle->notes)->toContain('Ajuste por calibración de odómetro en taller autorizado')
+        ->and($vehicle->notes)->toContain('5000 km a 5800 km');
+});
+
 test('rejects invalid Colombian plate format via form validation', function () {
     $this->actingAs($this->adminUser);
 

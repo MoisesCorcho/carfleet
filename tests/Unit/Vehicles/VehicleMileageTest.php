@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\Vehicles\AdjustVehicleMileageAction;
 use App\Actions\Vehicles\RegisterVehicleAction;
 use App\Actions\Vehicles\UpdateVehicleMileageAction;
 use App\DTOs\Vehicles\UpsertVehicleDTO;
@@ -105,6 +106,32 @@ test('rejects mileage update when new reading is negative', function () {
 
     expect(fn () => $action($vehicle, -100))
         ->toThrow(InvalidMileageException::class, 'El kilometraje inicial no puede ser negativo (-100 km).');
+});
+
+test('adjusts vehicle mileage with audit trail entry and justification', function () {
+    $vehicle = Vehicle::factory()->create([
+        'current_mileage' => 20000,
+        'notes' => 'Notas previas de entrega.',
+    ]);
+
+    $action = app(AdjustVehicleMileageAction::class);
+    $adjusted = $action($vehicle, 21500, 'Calibración técnica y reemplazo de odómetro');
+
+    expect($adjusted->current_mileage)->toBe(21500)
+        ->and($adjusted->notes)->toContain('Notas previas de entrega.')
+        ->and($adjusted->notes)->toContain('Ajuste manual de odómetro: de 20000 km a 21500 km')
+        ->and($adjusted->notes)->toContain('Calibración técnica y reemplazo de odómetro');
+});
+
+test('rejects adjusting vehicle mileage to a lower value', function () {
+    $vehicle = Vehicle::factory()->create([
+        'current_mileage' => 30000,
+    ]);
+
+    $action = app(AdjustVehicleMileageAction::class);
+
+    expect(fn () => $action($vehicle, 25000, 'Intento de disminución'))
+        ->toThrow(InvalidMileageException::class, 'El nuevo kilometraje (25000 km) no puede ser menor al kilometraje actual registrado (30000 km).');
 });
 
 test('vehicle scopes filter available and in service vehicles', function () {
