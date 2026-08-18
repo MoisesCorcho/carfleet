@@ -25,7 +25,23 @@ class RoleSeeder extends Seeder
         $driverRole = Role::firstOrCreate(['name' => 'driver', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'panel_user', 'guard_name' => 'web']);
 
-        // 2. Sync all current permissions to super_admin and admin
+        // 2. Base Entity Permissions
+        $entities = ['Role', 'Vehicle'];
+        $prefixes = [
+            'ViewAny', 'View', 'Create', 'Update', 'Delete', 'DeleteAny',
+            'Restore', 'ForceDelete', 'ForceDeleteAny', 'RestoreAny', 'Replicate', 'Reorder',
+        ];
+
+        foreach ($entities as $entity) {
+            foreach ($prefixes as $prefix) {
+                Permission::firstOrCreate([
+                    'name' => "{$prefix}:{$entity}",
+                    'guard_name' => 'web',
+                ]);
+            }
+        }
+
+        // 3. Sync all permissions to super_admin and admin
         $allPermissions = Permission::all();
         $superAdminRole->syncPermissions($allPermissions);
         $adminRole->syncPermissions($allPermissions);
