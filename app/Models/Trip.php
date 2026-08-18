@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Trips\TripStatusEnum;
+use Database\Factories\TripFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,9 +14,31 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $code
+ * @property int $requester_id
+ * @property int|null $vehicle_id
+ * @property int|null $driver_id
+ * @property string $origin
+ * @property string $destination
+ * @property Carbon $scheduled_departure_at
+ * @property Carbon|null $scheduled_arrival_at
+ * @property Carbon|null $actual_departure_at
+ * @property Carbon|null $actual_arrival_at
+ * @property int|null $initial_mileage
+ * @property int|null $final_mileage
+ * @property int|null $distance_traveled
+ * @property TripStatusEnum $status
+ * @property string|null $notes
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ */
 class Trip extends Model
 {
+    /** @use HasFactory<TripFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -104,5 +128,77 @@ class Trip extends Model
     public function invoices(): BelongsToMany
     {
         return $this->belongsToMany(Invoice::class)->withPivot('subtotal_amount')->withTimestamps();
+    }
+
+    public function isScheduled(): bool
+    {
+        return $this->status === TripStatusEnum::PROGRAMADO;
+    }
+
+    public function isAssigned(): bool
+    {
+        return $this->status === TripStatusEnum::ASIGNADO;
+    }
+
+    public function isInProgress(): bool
+    {
+        return $this->status === TripStatusEnum::EN_CURSO;
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === TripStatusEnum::FINALIZADO;
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->status === TripStatusEnum::CERRADO;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === TripStatusEnum::CANCELADO;
+    }
+
+    public function isImmutable(): bool
+    {
+        return $this->isClosed() || $this->isCancelled();
+    }
+
+    public function canBeAssigned(): bool
+    {
+        return $this->isScheduled() || $this->isAssigned();
+    }
+
+    public function canBeStarted(): bool
+    {
+        return $this->isAssigned();
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return ! $this->isImmutable() && ! $this->isInProgress() && ! $this->isCompleted();
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeForDriver(Builder $query, int $driverId): Builder
+    {
+        return $query->where('driver_id', $driverId);
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereIn('status', [
+            TripStatusEnum::PROGRAMADO,
+            TripStatusEnum::ASIGNADO,
+            TripStatusEnum::EN_CURSO,
+        ]);
     }
 }
