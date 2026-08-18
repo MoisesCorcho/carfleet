@@ -23,6 +23,8 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -120,35 +122,47 @@ class AssignedTripResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->contentGrid([
+                'default' => 1,
+                'md' => 1,
+                'lg' => 2,
+            ])
             ->columns([
-                TextColumn::make('code')
-                    ->label('Código')
-                    ->badge()
-                    ->color('gray')
-                    ->weight(FontWeight::Bold)
-                    ->searchable(),
+                Stack::make([
+                    Split::make([
+                        TextColumn::make('code')
+                            ->badge()
+                            ->color('gray')
+                            ->weight(FontWeight::Bold)
+                            ->searchable(),
 
-                TextColumn::make('origin')
-                    ->label('Ruta')
-                    ->description(fn (Trip $record): string => "Destino: {$record->destination}")
-                    ->searchable(),
+                        TextColumn::make('status')
+                            ->badge()
+                            ->color(fn (TripStatusEnum $state): string => $state->color())
+                            ->formatStateUsing(fn (TripStatusEnum $state): string => $state->label())
+                            ->alignEnd(),
+                    ]),
 
-                TextColumn::make('vehicle.plate_number')
-                    ->label('Vehículo')
-                    ->badge()
-                    ->color('info')
-                    ->description(fn (Trip $record): string => "{$record->vehicle?->brand} {$record->vehicle?->model}"),
+                    TextColumn::make('origin')
+                        ->icon('heroicon-m-map-pin')
+                        ->formatStateUsing(fn (Trip $record): string => "{$record->origin}  ➔  {$record->destination}")
+                        ->weight(FontWeight::SemiBold)
+                        ->searchable(),
 
-                TextColumn::make('scheduled_departure_at')
-                    ->label('Salida Programada')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    Split::make([
+                        TextColumn::make('vehicle.plate_number')
+                            ->icon('heroicon-m-truck')
+                            ->badge()
+                            ->color('info')
+                            ->formatStateUsing(fn (Trip $record): string => $record->vehicle ? "{$record->vehicle->plate_number} ({$record->vehicle->brand} {$record->vehicle->model})" : 'Sin Vehículo'),
 
-                TextColumn::make('status')
-                    ->label('Estado')
-                    ->badge()
-                    ->color(fn (TripStatusEnum $state): string => $state->color())
-                    ->formatStateUsing(fn (TripStatusEnum $state): string => $state->label()),
+                        TextColumn::make('scheduled_departure_at')
+                            ->icon('heroicon-m-calendar')
+                            ->dateTime('d/m/Y H:i')
+                            ->color('gray')
+                            ->alignEnd(),
+                    ]),
+                ])->space(3),
             ])
             ->defaultSort('scheduled_departure_at', 'desc')
             ->filters([
@@ -163,6 +177,7 @@ class AssignedTripResource extends Resource
                     ->label('INICIAR SERVICIO')
                     ->icon('heroicon-m-play')
                     ->color('success')
+                    ->button()
                     ->visible(fn (Trip $record): bool => $record->canBeStarted())
                     ->requiresConfirmation()
                     ->modalHeading('Iniciar Salida de Viaje')
@@ -185,7 +200,9 @@ class AssignedTripResource extends Resource
                         }
                     }),
 
-                ViewAction::make(),
+                ViewAction::make()
+                    ->button()
+                    ->color('gray'),
             ]);
     }
 

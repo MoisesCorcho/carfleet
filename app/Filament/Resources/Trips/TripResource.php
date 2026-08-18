@@ -100,7 +100,11 @@ class TripResource extends Resource
                                     ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false)
                                     ->helperText('Entidad o persona que requiere el traslado.'),
                             ])
-                            ->columns(2),
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 2,
+                            ])
+                            ->columnSpanFull(),
 
                         Section::make('Ruta y Programación')
                             ->description('Puntos de origen, destino y tiempos programados.')
@@ -138,7 +142,11 @@ class TripResource extends Resource
                                     ])
                                     ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false),
                             ])
-                            ->columns(2),
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 2,
+                            ])
+                            ->columnSpanFull(),
 
                         Section::make('Asignación de Recursos (Opcional en Creación)')
                             ->description('Vehículo y conductor que ejecutarán el servicio.')
@@ -194,9 +202,13 @@ class TripResource extends Resource
                                     ->columnSpanFull()
                                     ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false),
                             ])
-                            ->columns(2),
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 2,
+                            ])
+                            ->columnSpanFull(),
                     ])
-                    ->columns(1),
+                    ->columnSpanFull(),
             ]);
     }
 
