@@ -17,6 +17,7 @@ use App\Filament\Resources\Vehicles\Pages\ViewVehicle;
 use App\Models\Vehicle;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -293,57 +294,61 @@ class VehicleResource extends Resource
                 TrashedFilter::make(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make(),
-                Action::make('adjustMileage')
-                    ->label('Ajustar Odómetro')
-                    ->icon('heroicon-m-variable')
-                    ->color('warning')
-                    ->modalHeading(fn (Vehicle $record): string => "Ajustar Odómetro — Placa {$record->plate_number}")
-                    ->modalDescription('Registra una calibración o ajuste excepcional del odómetro con su debida justificación de auditoría.')
-                    ->modalSubmitActionLabel('Guardar Ajuste')
-                    ->modalIcon('heroicon-o-variable')
-                    ->schema([
-                        TextInput::make('new_mileage')
-                            ->label('Nuevo Kilometraje')
-                            ->prefixIcon('heroicon-m-variable')
-                            ->numeric()
-                            ->suffix('km')
-                            ->required()
-                            ->minValue(fn (Vehicle $record): int => $record->current_mileage)
-                            ->default(fn (Vehicle $record): int => $record->current_mileage)
-                            ->helperText(fn (Vehicle $record): string => 'Kilometraje actual: '.number_format($record->current_mileage, 0, ',', '.').' km. El nuevo valor debe ser mayor o igual.'),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    Action::make('adjustMileage')
+                        ->label('Ajustar Odómetro')
+                        ->icon('heroicon-m-variable')
+                        ->color('warning')
+                        ->modalHeading(fn (Vehicle $record): string => "Ajustar Odómetro — Placa {$record->plate_number}")
+                        ->modalDescription('Registra una calibración o ajuste excepcional del odómetro con su debida justificación de auditoría.')
+                        ->modalSubmitActionLabel('Guardar Ajuste')
+                        ->modalIcon('heroicon-o-variable')
+                        ->schema([
+                            TextInput::make('new_mileage')
+                                ->label('Nuevo Kilometraje')
+                                ->prefixIcon('heroicon-m-variable')
+                                ->numeric()
+                                ->suffix('km')
+                                ->required()
+                                ->minValue(fn (Vehicle $record): int => $record->current_mileage)
+                                ->default(fn (Vehicle $record): int => $record->current_mileage)
+                                ->helperText(fn (Vehicle $record): string => 'Kilometraje actual: '.number_format($record->current_mileage, 0, ',', '.').' km. El nuevo valor debe ser mayor o igual.'),
 
-                        Textarea::make('reason')
-                            ->label('Motivo del Ajuste / Justificación')
-                            ->placeholder('Ej: Corrección por cambio de tablero, calibración técnica o error en registro previo.')
-                            ->required()
-                            ->minLength(10)
-                            ->maxLength(500)
-                            ->helperText('Esta justificación quedará registrada permanentemente en la bitácora del vehículo.'),
-                    ])
-                    ->action(function (Vehicle $record, array $data): void {
-                        $action = app(AdjustVehicleMileageAction::class);
+                            Textarea::make('reason')
+                                ->label('Motivo del Ajuste / Justificación')
+                                ->placeholder('Ej: Corrección por cambio de tablero, calibración técnica o error en registro previo.')
+                                ->required()
+                                ->minLength(10)
+                                ->maxLength(500)
+                                ->helperText('Esta justificación quedará registrada permanentemente en la bitácora del vehículo.'),
+                        ])
+                        ->action(function (Vehicle $record, array $data): void {
+                            $action = app(AdjustVehicleMileageAction::class);
 
-                        try {
-                            $action($record, (int) $data['new_mileage'], (string) $data['reason']);
+                            try {
+                                $action($record, (int) $data['new_mileage'], (string) $data['reason']);
 
-                            Notification::make()
-                                ->title('Odómetro Actualizado')
-                                ->body("El odómetro del vehículo {$record->plate_number} fue ajustado a ".number_format((int) $data['new_mileage'], 0, ',', '.').' km.')
-                                ->success()
-                                ->send();
-                        } catch (InvalidMileageException $e) {
-                            Notification::make()
-                                ->title('Error al Ajustar Odómetro')
-                                ->body($e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    }),
-                DeleteAction::make(),
-                RestoreAction::make(),
-                ForceDeleteAction::make(),
+                                Notification::make()
+                                    ->title('Odómetro Actualizado')
+                                    ->body("El odómetro del vehículo {$record->plate_number} fue ajustado a ".number_format((int) $data['new_mileage'], 0, ',', '.').' km.')
+                                    ->success()
+                                    ->send();
+                            } catch (InvalidMileageException $e) {
+                                Notification::make()
+                                    ->title('Error al Ajustar Odómetro')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+                    DeleteAction::make(),
+                    RestoreAction::make(),
+                    ForceDeleteAction::make(),
+                ])
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->tooltip('Opciones del Vehículo'),
             ])
             ->bulkActions([
                 DeleteBulkAction::make(),
