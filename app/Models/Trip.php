@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Trips\TripStatusEnum;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,6 +47,28 @@ class Trip extends Model
             'distance_traveled' => 'integer',
             'status' => TripStatusEnum::class,
         ];
+    }
+
+    public function durationInMinutes(): Attribute
+    {
+        return Attribute::get(function (): ?int {
+            if (! $this->actual_departure_at || ! $this->actual_arrival_at) {
+                return null;
+            }
+
+            return (int) $this->actual_departure_at->diffInMinutes($this->actual_arrival_at);
+        });
+    }
+
+    public function durationForHumans(): Attribute
+    {
+        return Attribute::get(function (): ?string {
+            if (! $this->actual_departure_at || ! $this->actual_arrival_at) {
+                return null;
+            }
+
+            return $this->actual_departure_at->diffForHumans($this->actual_arrival_at, true);
+        });
     }
 
     public function requester(): BelongsTo

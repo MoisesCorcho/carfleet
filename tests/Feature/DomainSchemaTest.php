@@ -99,6 +99,20 @@ test('can create and relate all domain entities', function () {
     ]);
     $invoice->trips()->attach($trip->id, ['subtotal_amount' => 500000]);
 
+    // 9. Minimal Requester & Trip Duration assertions
+    $casualRequester = Requester::create([
+        'name' => 'Pasajero Casual',
+    ]);
+    expect($casualRequester->document_number)->toBeNull();
+
+    $trip->update([
+        'actual_departure_at' => now()->subHours(2),
+        'actual_arrival_at' => now(),
+    ]);
+
+    expect($trip->duration_in_minutes)->toBe(120);
+    expect($trip->duration_for_humans)->not->toBeNull();
+
     // Assertions using Pest expectations & database assertions
     $this->assertDatabaseHas('drivers', ['document_number' => '1098765432']);
     $this->assertDatabaseHas('vehicles', ['plate_number' => 'XYZ-123']);

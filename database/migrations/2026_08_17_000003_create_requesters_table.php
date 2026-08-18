@@ -14,8 +14,8 @@ return new class extends Migration
             $table->id();
             $table->string('name', 128);
             $table->string('company_name', 128)->nullable();
-            $table->string('document_number', 32)->unique();
-            $table->string('phone', 32);
+            $table->string('document_number', 32)->nullable();
+            $table->string('phone', 32)->nullable();
             $table->string('email', 128)->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
