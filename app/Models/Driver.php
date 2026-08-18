@@ -4,19 +4,38 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
+use Database\Factories\DriverFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $full_name
+ * @property DocumentTypeEnum $document_type
+ * @property string $document_number
+ * @property string $phone
+ * @property string $license_number
+ * @property Carbon|null $license_expires_at
+ * @property DriverStatusEnum $status
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ */
 class Driver extends Model
 {
+    /** @use HasFactory<DriverFactory> */
     use HasFactory;
 
     protected $fillable = [
         'user_id',
         'full_name',
+        'document_type',
         'document_number',
         'phone',
         'license_number',
@@ -27,6 +46,7 @@ class Driver extends Model
     protected function casts(): array
     {
         return [
+            'document_type' => DocumentTypeEnum::class,
             'license_expires_at' => 'date',
             'status' => DriverStatusEnum::class,
         ];
@@ -45,5 +65,56 @@ class Driver extends Model
     public function fuelLogs(): HasMany
     {
         return $this->hasMany(FuelLog::class);
+    }
+
+    public function formattedDocument(): string
+    {
+        return "{$this->document_type->value} {$this->document_number}";
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === DriverStatusEnum::ACTIVO;
+    }
+
+    public function isLicenseExpired(): bool
+    {
+        if ($this->license_expires_at === null) {
+            return false;
+        }
+
+        return $this->license_expires_at->isPast() && ! $this->license_expires_at->isToday();
+    }
+
+    public function hasValidLicense(): bool
+    {
+        return ! $this->isLicenseExpired();
+    }
+
+    public function isEligibleForTrip(): bool
+    {
+        return $this->isActive() && $this->hasValidLicense();
+    }
+
+    /**
+     * @param  Builder<Driver>  $query
+     * @return Builder<Driver>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('status', DriverStatusEnum::ACTIVO);
+    }
+
+    /**
+     * @param  Builder<Driver>  $query
+     * @return Builder<Driver>
+     */
+    public function scopeEligibleForTrip(Builder $query): Builder
+    {
+        return $query->where('status', DriverStatusEnum::ACTIVO)
+            ->where(function (Builder $q): void {
+                $q->whereNull('license_expires_at')
+                    ->orWhereDate('license_expires_at', '>=', now()->toDateString());
+            });
     }
 }

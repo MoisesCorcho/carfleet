@@ -26,7 +26,7 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'panel_user', 'guard_name' => 'web']);
 
         // 2. Base Entity Permissions
-        $entities = ['Role', 'Vehicle'];
+        $entities = ['Role', 'Vehicle', 'Driver'];
         $prefixes = [
             'ViewAny', 'View', 'Create', 'Update', 'Delete', 'DeleteAny',
             'Restore', 'ForceDelete', 'ForceDeleteAny', 'RestoreAny', 'Replicate', 'Reorder',
