@@ -10,6 +10,10 @@
 * **`App\Enums\Drivers\DocumentTypeEnum`** (string): `CC`, `CE`, `PA`, `PPT`, `PEP`.
   * `label(): string` -> Nombre completo de documento colombiano
   * `shortLabel(): string` -> Acrónimo
+* **`App\Enums\Drivers\LicenseCategoryEnum`** (string): `B1`, `B2`, `B3`, `C1`, `C2`, `C3`.
+  * `label(): string` -> Categoría oficial RUNT (Particular vs Servicio Público)
+  * `isPublicService(): bool` -> true si es C1, C2 o C3
+  * `color(): string` -> `warning` (público) / `info` (particular)
 
 ### Model: `App\Models\Driver`
 
@@ -22,8 +26,10 @@
 - document_number: string (32)
 - phone: string (32)
 - license_number: string (unique, 32)
+- license_category: LicenseCategoryEnum (default: C1)
 - license_expires_at: date (nullable)
 - status: DriverStatusEnum (default: activo)
+- deleted_at: timestamp (nullable, SoftDeletes)
 - created_at, updated_at
 
 // Composite Unique Constraints
@@ -37,8 +43,10 @@
 // Domain Helper Methods & Scopes
 - formattedDocument(): string
 - isActive(): bool
+- isLicenseExpired(): bool
 - hasValidLicense(): bool
 - isEligibleForTrip(): bool
+- canDrivePublicService(): bool
 - scopeActive(Builder $query): Builder
 - scopeEligibleForTrip(Builder $query): Builder
 ```
@@ -56,6 +64,7 @@ namespace App\DTOs\Drivers;
 
 use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
+use App\Enums\Drivers\LicenseCategoryEnum;
 
 readonly class UpsertDriverDTO
 {
@@ -66,6 +75,7 @@ readonly class UpsertDriverDTO
         public string $documentNumber,
         public string $phone,
         public string $licenseNumber,
+        public LicenseCategoryEnum $licenseCategory = LicenseCategoryEnum::C1,
         public ?string $licenseExpiresAt = null,
         public DriverStatusEnum $status = DriverStatusEnum::ACTIVO,
     ) {}
@@ -96,7 +106,7 @@ readonly class UpsertDriverDTO
 
 ### Policy: `App\Policies\DriverPolicy`
 
-* Maps actions to Spatie permissions (`ViewAny:Driver`, `View:Driver`, `Create:Driver`, `Update:Driver`, `Delete:Driver`, etc.).
+* Maps actions to Spatie permissions (`ViewAny:Driver`, `View:Driver`, `Create:Driver`, `Update:Driver`, `Delete:Driver`, `Restore:Driver`, `ForceDelete:Driver`).
 * Enforced automatically on `DriverResource`.
 
 ---
@@ -107,15 +117,10 @@ readonly class UpsertDriverDTO
   * Navigation Group: `'Gestión de Flota'`, icon: `'heroicon-o-identification'`, sort: `2`.
   * Model Label: `'Conductor'` / `'Conductores'`.
 * **Form Schema**:
-  * Section "Información del Conductor y Cuenta": Select `user_id`, TextInput `full_name`, Select `document_type`, TextInput `document_number` (con validación de unicidad compuesta), TextInput `phone` (con validación regex de formato).
-  * Section "Habilitación y Licencia de Conducción": TextInput `license_number`, DatePicker `license_expires_at`, Select `status` (DriverStatusEnum options).
+  * Inputs con íconos de prefijo semánticos (`heroicon-m-user`, `heroicon-m-identification`, `heroicon-m-phone`, `heroicon-m-credit-card`, `heroicon-m-truck`, `heroicon-m-calendar-days`).
+  * Modal integrado de creación de usuario con `createOptionForm` asignando rol `driver` en `user_id`.
+  * Selector oficial de `license_category` (B1..B3, C1..C3).
 * **Table Schema**:
-  * Columns: `full_name` (sortable, searchable), `document` (formatted `CC 10203040`, searchable, sortable, copyable), `phone` (searchable), `license_number` (searchable, badge), `license_expires_at` (date format d/m/Y, warning indicator if expired), `status` (badge with colors).
-  * Filters: `status` (SelectFilter), `document_type` (SelectFilter), Filter for active with valid license (`eligible_for_trip`).
-  * Actions: ViewAction, EditAction, DeleteAction.
-  * Empty State: "No hay conductores registrados".
-* **Pages**:
-  * `ListDrivers`: list table with header create button.
-  * `CreateDriver`: uses `UpsertDriverDTO` and `RegisterDriverAction`.
-  * `EditDriver`: uses `UpsertDriverDTO` and `UpdateDriverAction`.
-  * `ViewDriver`: read-only view.
+  * Columnas: `full_name`, `document` (formateado, copiable), `phone`, `license_number`, `license_category` (badge), `license_expires_at` (con alerta visual si vencida), `status` (badge).
+  * Menú de acciones agrupadas en dropdown `ActionGroup` (`⋮`).
+  * Filtros: `status`, `document_type`, `license_category`, `eligible_for_trip`, `TrashedFilter`.
