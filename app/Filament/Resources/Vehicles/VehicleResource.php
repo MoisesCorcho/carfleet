@@ -312,13 +312,13 @@ class VehicleResource extends Resource
                                 ->numeric()
                                 ->suffix('km')
                                 ->required()
-                                ->minValue(fn (Vehicle $record): int => $record->current_mileage)
+                                ->minValue(0)
                                 ->default(fn (Vehicle $record): int => $record->current_mileage)
-                                ->helperText(fn (Vehicle $record): string => 'Kilometraje actual: '.number_format($record->current_mileage, 0, ',', '.').' km. El nuevo valor debe ser mayor o igual.'),
+                                ->helperText(fn (Vehicle $record): string => 'Kilometraje actual: '.number_format($record->current_mileage, 0, ',', '.').' km. Se permite corregir hacia arriba o hacia abajo con la debida justificación.'),
 
                             Textarea::make('reason')
                                 ->label('Motivo del Ajuste / Justificación')
-                                ->placeholder('Ej: Corrección por cambio de tablero, calibración técnica o error en registro previo.')
+                                ->placeholder('Ej: Corrección por error de tipeo, cambio de tablero o calibración técnica.')
                                 ->required()
                                 ->minLength(10)
                                 ->maxLength(500)

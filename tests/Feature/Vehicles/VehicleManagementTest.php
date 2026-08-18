@@ -116,6 +116,28 @@ test('admin can adjust vehicle odometer via table action modal', function () {
         ->and($vehicle->notes)->toContain('5000 km a 5800 km');
 });
 
+test('admin can adjust vehicle odometer to a lower value to correct typos via table action modal', function () {
+    $this->actingAs($this->adminUser);
+
+    $vehicle = Vehicle::factory()->create([
+        'plate_number' => 'TYP-100',
+        'current_mileage' => 50000,
+        'notes' => 'Vehículo con error previo de carga',
+    ]);
+
+    Livewire::test(ListVehicles::class)
+        ->callTableAction('adjustMileage', $vehicle, [
+            'new_mileage' => 5000,
+            'reason' => 'Corrección de error de digitación: se ingresó un cero extra por error',
+        ])
+        ->assertHasNoTableActionErrors();
+
+    $vehicle->refresh();
+    expect($vehicle->current_mileage)->toBe(5000)
+        ->and($vehicle->notes)->toContain('Corrección de error de digitación')
+        ->and($vehicle->notes)->toContain('50000 km a 5000 km');
+});
+
 test('rejects invalid Colombian plate format via form validation', function () {
     $this->actingAs($this->adminUser);
 

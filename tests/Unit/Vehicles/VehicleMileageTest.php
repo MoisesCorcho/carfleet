@@ -123,15 +123,41 @@ test('adjusts vehicle mileage with audit trail entry and justification', functio
         ->and($adjusted->notes)->toContain('Calibración técnica y reemplazo de odómetro');
 });
 
-test('rejects adjusting vehicle mileage to a lower value', function () {
+test('allows adjusting vehicle mileage to a lower value with audit trail entry (e.g. typo correction)', function () {
     $vehicle = Vehicle::factory()->create([
         'current_mileage' => 30000,
+        'notes' => 'Notas previas.',
+    ]);
+
+    $action = app(AdjustVehicleMileageAction::class);
+    $adjusted = $action($vehicle, 25000, 'Corrección por error de digitación previo');
+
+    expect($adjusted->current_mileage)->toBe(25000)
+        ->and($adjusted->notes)->toContain('Notas previas.')
+        ->and($adjusted->notes)->toContain('Ajuste manual de odómetro: de 30000 km a 25000 km')
+        ->and($adjusted->notes)->toContain('Corrección por error de digitación previo');
+});
+
+test('rejects adjusting vehicle mileage to a negative value', function () {
+    $vehicle = Vehicle::factory()->create([
+        'current_mileage' => 10000,
     ]);
 
     $action = app(AdjustVehicleMileageAction::class);
 
-    expect(fn () => $action($vehicle, 25000, 'Intento de disminución'))
-        ->toThrow(InvalidMileageException::class, 'El nuevo kilometraje (25000 km) no puede ser menor al kilometraje actual registrado (30000 km).');
+    expect(fn () => $action($vehicle, -500, 'Ajuste inválido'))
+        ->toThrow(InvalidMileageException::class, 'El kilometraje inicial no puede ser negativo (-500 km).');
+});
+
+test('rejects adjusting vehicle mileage with empty justification reason', function () {
+    $vehicle = Vehicle::factory()->create([
+        'current_mileage' => 10000,
+    ]);
+
+    $action = app(AdjustVehicleMileageAction::class);
+
+    expect(fn () => $action($vehicle, 8000, '   '))
+        ->toThrow(InvalidArgumentException::class, 'El motivo del ajuste de odómetro es obligatorio.');
 });
 
 test('vehicle scopes filter available and in service vehicles', function () {

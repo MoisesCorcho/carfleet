@@ -12,8 +12,10 @@ class AdjustVehicleMileageAction
 {
     /**
      * Adjust a vehicle's odometer with an audit trail note.
+     * Allows corrections (increase or decrease) for administrative/calibration purposes.
      *
      * @throws InvalidMileageException
+     * @throws \InvalidArgumentException
      */
     public function __invoke(Vehicle $vehicle, int $newMileage, string $reason): Vehicle
     {
@@ -21,8 +23,9 @@ class AdjustVehicleMileageAction
             throw InvalidMileageException::negativeMileage($newMileage);
         }
 
-        if ($newMileage < $vehicle->current_mileage) {
-            throw InvalidMileageException::decreasingMileage($vehicle->current_mileage, $newMileage);
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new \InvalidArgumentException('El motivo del ajuste de odómetro es obligatorio.');
         }
 
         return DB::transaction(function () use ($vehicle, $newMileage, $reason): Vehicle {
