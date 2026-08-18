@@ -76,7 +76,7 @@ class DriverResource extends Resource
                 Grid::make()
                     ->schema([
                         Section::make('Información del Conductor y Cuenta')
-                            ->description('Vinculación con cuenta de usuario y datos de identificación personal en Colombia.')
+                            ->description('Vinculación con cuenta de usuario y datos de identificación personal.')
                             ->schema([
                                 Select::make('user_id')
                                     ->label('Cuenta de Usuario')
@@ -131,7 +131,7 @@ class DriverResource extends Resource
                                     )->all())
                                     ->default(DocumentTypeEnum::CC->value)
                                     ->required()
-                                    ->helperText('Tipo de identificación legal en Colombia.'),
+                                    ->helperText('Tipo de documento de identificación oficial.'),
 
                                 TextInput::make('document_number')
                                     ->label('Número de Documento')
@@ -188,14 +188,14 @@ class DriverResource extends Resource
                                     )->all())
                                     ->default(LicenseCategoryEnum::C1->value)
                                     ->required()
-                                    ->helperText('Categoría oficial del RUNT (B1..B3 Particular, C1..C3 Público).'),
+                                    ->helperText('Categoría autorizada en la licencia (B1..B3 Particular, C1..C3 Público).'),
 
                                 DatePicker::make('license_expires_at')
                                     ->label('Vencimiento de Licencia')
                                     ->prefixIcon('heroicon-m-calendar-days')
                                     ->native(false)
                                     ->displayFormat('d/m/Y')
-                                    ->helperText('Fecha de expiración legal del pase de conducción.'),
+                                    ->helperText('Fecha de expiración de la licencia de conducción.'),
 
                                 Select::make('status')
                                     ->label('Estado Operacional')

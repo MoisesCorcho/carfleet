@@ -77,7 +77,7 @@ class VehicleResource extends Resource
                 Grid::make()
                     ->schema([
                         Section::make('Identificación y Características del Vehículo')
-                            ->description('Datos de registro oficial y carrocería según estándares de Colombia.')
+                            ->description('Datos de registro oficial y características de la carrocería.')
                             ->schema([
                                 TextInput::make('plate_number')
                                     ->label('Placa del Vehículo')
@@ -87,12 +87,12 @@ class VehicleResource extends Resource
                                     ->maxLength(16)
                                     ->regex('/^[A-Z]{3}-?[0-9]{3}$|^[A-Z]{3}-?[0-9]{2}[A-Z]$/')
                                     ->validationMessages([
-                                        'regex' => 'La placa debe tener un formato válido colombiano (ej: ABC-123 o ABC123).',
+                                        'regex' => 'La placa debe tener un formato válido (ej: ABC-123 o ABC123).',
                                     ])
                                     ->unique(ignoreRecord: true)
                                     ->extraInputAttributes(['style' => 'text-transform: uppercase;'])
                                     ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state)))
-                                    ->helperText('Placa oficial registrada ante el RUNT.'),
+                                    ->helperText('Formato alfanumérico oficial del vehículo.'),
 
                                 Select::make('service_type')
                                     ->label('Tipo de Servicio')
@@ -102,7 +102,7 @@ class VehicleResource extends Resource
                                     )->all())
                                     ->default(ServiceTypeEnum::PUBLICO->value)
                                     ->required()
-                                    ->helperText('Público (Placa Blanca empresarial) o Particular (Placa Amarilla).'),
+                                    ->helperText('Modalidad de servicio asignada al vehículo (Público o Particular).'),
 
                                 Select::make('vehicle_type')
                                     ->label('Tipo de Carrocería')

@@ -16,7 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('registers vehicle with valid non-negative initial mileage and Colombian types', function () {
+test('registers vehicle with valid non-negative initial mileage and enum types', function () {
     $action = app(RegisterVehicleAction::class);
 
     $dto = new UpsertVehicleDTO(

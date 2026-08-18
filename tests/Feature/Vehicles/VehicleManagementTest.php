@@ -138,7 +138,7 @@ test('admin can adjust vehicle odometer to a lower value to correct typos via ta
         ->and($vehicle->notes)->toContain('50000 km a 5000 km');
 });
 
-test('rejects invalid Colombian plate format via form validation', function () {
+test('rejects invalid plate format via form validation', function () {
     $this->actingAs($this->adminUser);
 
     Livewire::test(CreateVehicle::class)
