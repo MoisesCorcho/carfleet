@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\Drivers\DriverStatusEnum;
 use App\Enums\Evidences\EvidenceTypeEnum;
+use App\Enums\Requesters\RequesterDocumentTypeEnum;
 use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\FuelTypeEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
@@ -43,6 +44,7 @@ test('can create and relate all domain entities', function () {
     // 3. Requester
     $requester = Requester::create([
         'name' => 'Empresa Pueblo Nuevo S.A.S',
+        'document_type' => RequesterDocumentTypeEnum::NIT,
         'document_number' => '900123456-1',
         'phone' => '6017654321',
         'email' => 'contacto@pueblonuevo.co',
@@ -102,8 +104,11 @@ test('can create and relate all domain entities', function () {
     // 9. Minimal Requester & Trip Duration assertions
     $casualRequester = Requester::create([
         'name' => 'Pasajero Casual',
+        'document_type' => RequesterDocumentTypeEnum::CC,
+        'document_number' => '1020304050',
+        'phone' => '3001234567',
     ]);
-    expect($casualRequester->document_number)->toBeNull();
+    expect($casualRequester->document_number)->toBe('1020304050');
 
     $trip->update([
         'actual_departure_at' => now()->subHours(2),
