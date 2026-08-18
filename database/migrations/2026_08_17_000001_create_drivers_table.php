@@ -12,14 +12,19 @@ return new class extends Migration
     {
         Schema::create('drivers', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
             $table->string('full_name', 128);
-            $table->string('document_number', 32)->unique();
+            $table->string('document_type', 16)->default('CC');
+            $table->string('document_number', 32);
             $table->string('phone', 32);
             $table->string('license_number', 32)->unique();
+            $table->string('license_category', 8)->default('C1');
             $table->date('license_expires_at')->nullable();
             $table->string('status', 32)->default('activo');
+            $table->softDeletes();
             $table->timestamps();
+
+            $table->unique(['document_type', 'document_number']);
         });
     }
 

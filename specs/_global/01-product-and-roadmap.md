@@ -36,8 +36,8 @@ Actualmente se construye como un **prototipo funcional completo y robusto sobre 
 
 | ID | Feature / Módulo | Fase | Estado | Prerequisitos |
 |---|---|---|---|---|
-| F01 | **Gestión de Vehículos** (`01-vehicle-management`) | 0 · Catálogos Base | Specs en progreso | Fundación de Dominio |
-| F02 | **Gestión de Conductores** (`02-driver-management`) | 0 · Catálogos Base | Specs en progreso | Fundación de Dominio |
+| F01 | **Gestión de Vehículos** (`01-vehicle-management`) | 0 · Catálogos Base | Completa | Fundación de Dominio |
+| F02 | **Gestión de Conductores** (`02-driver-management`) | 0 · Catálogos Base | Completa | Fundación de Dominio |
 | F03 | **Gestión de Solicitantes** (`03-requester-management`) | 0 · Catálogos Base | Specs en progreso | Fundación de Dominio |
 | F04 | **Gestión y Asignación de Viajes** (`04-trip-management`) | 1 · Operación Core | Specs en progreso | F01, F02, F03 |
 | F05 | **Kilometraje y Evidencias Fotográficas** (`05-mileage-and-evidences`) | 1 · Operación Core | Specs en progreso | F04 |

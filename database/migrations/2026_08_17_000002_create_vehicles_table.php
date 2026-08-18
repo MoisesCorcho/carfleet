@@ -16,10 +16,13 @@ return new class extends Migration
             $table->string('brand', 64);
             $table->string('model', 64);
             $table->unsignedSmallInteger('year');
+            $table->string('vehicle_type', 32)->default('camioneta');
+            $table->string('service_type', 32)->default('publico');
             $table->unsignedInteger('current_mileage')->default(0);
             $table->string('status', 32)->default('disponible');
             $table->string('fuel_type', 32)->default('gasolina');
             $table->text('notes')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

@@ -9,39 +9,30 @@ description: >
   this skill owns panel presentation quality, not business rules.
 metadata:
   short-description: "Filament v4 premium admin UI/UX for CarFleet"
-  version: "1.0"
+  version: "1.1"
   stack: "filament/filament v4 · laravel v13 · livewire v3 · php 8.4"
 ---
 
 # Filament Admin Standards — CarFleet
 
-Actionable rules for **premium admin panels** in this repo. Domain architecture is already defined in [`AGENTS.md`](../../../AGENTS.md) / project-conventions — **do not reinvent it here**.
+Actionable rules for **premium admin panels (Enterprise Grade)** in this repo. Domain architecture is defined in [`AGENTS.md`](../../../AGENTS.md) and [`specs/_global/03-domain-and-ux-standards.md`](../../../specs/_global/03-domain-and-ux-standards.md).
 
 | Concern | Source of truth |
 |---|---|
 | Actions, DTOs, Services, Enums, Gateways | `AGENTS.md` / `.ai/guidelines/project-conventions.md` |
 | Feature acceptance / EARS | `specs/features/**` |
+| Domain Standards & Colombian Regulations | `specs/_global/03-domain-and-ux-standards.md` |
 | Filament v4 API syntax | Laravel Boost `search-docs` **before** non-trivial UI code |
 | **Panel UI/UX quality** | **This skill** |
 
-## When to Use
-
-Load **before writing Filament code** when:
-
-- Creating or editing Resources / Pages / Widgets / Relation Managers.
-- Designing forms, tables, filters, bulk actions, empty states.
-- Polishing admin navigation, labels, feedback, or branding.
-- Reviewing "working but ugly/half-baked" admin CRUD.
-- User mentions: panel Filament, resource, admin UX, `/filament-admin-standards`.
-
 ## Core Principles (non-negotiable)
 
-1. **Domain outside Filament** — writes and invariants go through **Actions** (and Services only when shared). Resources orchestrate UI and call Actions with DTOs. See AGENTS.md.
+1. **Domain outside Filament** — writes and invariants go through **Actions** (and Services only when shared). Resources orchestrate UI and call Actions with DTOs.
 2. **Thin Resources, rich UI** — Resources may be UI-heavy (layout, copy, affordances); they must not own business rules.
-3. **Premium default** — every List/Form ships as product-grade operator UX, not scaffold leftovers.
-4. **One language** — Spanish for operator-facing strings (labels, helpers, empty states, notifications, validation).
-5. **No dead chrome** — no `FilamentInfoWidget` in production, no empty stubs.
-6. **Verify API** — verify Filament v4 namespaces and components with `search-docs` + sibling Resources under `app/Filament/`.
+3. **Enterprise Polish Default** — every List/Form ships with semantic icons, clear placeholders, helper texts, and input normalization.
+4. **Frictionless Relationships (`createOptionForm`)** — allow creating related entities (e.g. creating a User from Driver form) inline without leaving the view.
+5. **Protection of Event-Driven Fields** — historical or calculation fields (like odometer/mileage in Edit forms) must be read-only (`disabled()`) and mutated solely by domain actions.
+6. **One language** — Spanish for operator-facing strings (labels, helpers, empty states, notifications, validation).
 
 ---
 
@@ -62,70 +53,57 @@ app/
       Trips/
         TripResource.php
     Pages/                # custom panel pages when needed
-    Widgets/              # fleet KPIs only (total vehicles, active trips, fuel costs)
+    Widgets/              # fleet KPIs only
   Providers/Filament/
     AdminPanelProvider.php
 ```
 
-| Rule | Detail |
-|---|---|
-| Single admin panel | `id('admin')`, `path('admin')` |
-| Area folders | Group Resources by domain area (`Vehicles`, `Drivers`, `Trips`, `Fuel`, `Invoices`) |
-| Extraction | Form/Table schemas → `Schemas/*` when form is multi-section or > ~80 lines |
+---
+
+## 2. Premium UI/UX — Form Standards
+
+### Visual Ergonomics & Semantic Icons
+Use prefix icons on inputs to accelerate cognitive scanning:
+* Identifiers / Plates / Documents: `prefixIcon('heroicon-m-identification')` or `prefixIcon('heroicon-m-credit-card')`
+* Phone: `prefixIcon('heroicon-m-phone')`
+* Email: `prefixIcon('heroicon-m-envelope')`
+* Dates / Calendars: `prefixIcon('heroicon-m-calendar-days')`
+* Users / Persons: `prefixIcon('heroicon-m-user')`
+* Vehicles / Transport: `prefixIcon('heroicon-m-truck')`
+
+### Input Guidance & Formatting
+* Provide `placeholder('Ej: ...')` with realistic Colombian examples.
+* Provide `helperText('...')` explaining formatting rules or purpose.
+* Normalize case in client and server: `extraInputAttributes(['style' => 'text-transform: uppercase;'])` + `dehydrateStateUsing(fn ($state) => strtoupper(trim((string) $state)))`.
+* For sensitive formats (phones, plates), use regex with clear Spanish error messages.
+
+### Inline Entity Creation
+Use `->createOptionForm([...])` on relationship Selects so operators never have to navigate away to create foreign keys.
 
 ---
 
-## 2. Resource Responsibilities
-
-### Allowed in Resource / Pages
-
-- Navigation: group (`Gestión de Flota`, `Operación`, `Administración`), icon (`Heroicon`), sort, badge.
-- Form/table schema composition (layout, copy, field UX).
-- Field-level validation for immediate feedback (`required`, `numeric`, `unique(ignoreRecord: true)`).
-- Mapping create/edit to **Actions + DTOs**.
-- Catching domain exceptions → danger `Notification` + `halt()` (no silent fail).
-
-### Forbidden in Resource
-
-- Multi-model business workflows without an Action.
-- Mileage or trip status transition logic only inside `afterStateUpdated`.
-- Copy-pasted field blocks across Resources.
-
----
-
-## 3. Premium UI/UX — Forms
-
-### Layout Hierarchy
-
-| Level | Use |
-|---|---|
-| `Tabs` | ≥ 2 conceptual areas on a long form (e.g. Trip: Información · Evidencias · Firma) |
-| `Section` | Group of related fields; always titled with optional description |
-| `Grid` | 2–3 columns for short fields; full width for notes, upload, signature |
-
-### Labels & Copy (Spanish Operators)
-
-- Labels in human Spanish (e.g., `Placa del Vehículo`, `Kilometraje Inicial`, `Conductor Asignado`).
-- Helper text for non-obvious format or constraints (e.g., "Lectura del odómetro en kilómetros").
-
----
-
-## 4. Premium UI/UX — Tables
+## 3. Premium UI/UX — Table Standards
 
 Every List page is an **operator workspace**:
 
-- Columns operators scan first (plate number, driver name, status badge, mileage).
-- Statuses as badges with distinct colors (`disponible` = success, `en_viaje` = warning, `mantenimiento` = danger).
-- Filters matching real questions (Filter by status, fuel type, driver availability).
+- Columns operators scan first: Title/Identifier, Badges with status, Contact info, Validity.
+- Statuses as badges with distinct colors:
+  * `disponible` / `activo` = `success` (green)
+  * `en_viaje` = `warning` (amber)
+  * `mantenimiento` / `suspendido` = `danger` (red)
+  * `inactivo` / `fuera_de_servicio` = `gray`
+- Alerta visual explícita en registros vencidos o irregulares (ej. "Licencia Vencida").
+- Filters matching real operational questions (Availability, Document Type, Eligibility for Trips).
+- Copyable key columns (Plate, Document Number, Phone) with feedback notification.
 - Empty states with heading, description, and primary create action.
-- Pagination options (`10, 25, 50`).
 
 ---
 
-## 5. Pre-Merge Checklist
+## 4. Pre-Merge Checklist
 
-- [ ] Single admin panel configured in `AdminPanelProvider.php`.
 - [ ] Resources grouped in area folders under `app/Filament/Resources/{Area}/`.
 - [ ] Spanish copy on all labels, headings, notifications, and empty states.
-- [ ] Multi-model writes mapped to Actions with `DB::transaction`.
-- [ ] `./vendor/bin/sail pint` executed clean before committing.
+- [ ] Semantic prefix icons on form inputs.
+- [ ] Related entity creation inline via `createOptionForm` where applicable.
+- [ ] Event-driven attributes (e.g. current mileage) protected from arbitrary edits.
+- [ ] `./vendor/bin/sail pint` and `./vendor/bin/sail test` executed clean.
