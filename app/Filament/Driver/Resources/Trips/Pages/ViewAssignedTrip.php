@@ -25,15 +25,12 @@ class ViewAssignedTrip extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        /** @var Trip $record */
-        $record = $this->getRecord();
-
         return [
             Action::make('startTrip')
                 ->label('INICIAR SERVICIO')
                 ->icon('heroicon-m-play')
                 ->color('success')
-                ->visible(fn (): bool => $record->canBeStarted())
+                ->visible(fn (): bool => $this->getRecord()->canBeStarted())
                 ->modalHeading('Iniciar Salida de Viaje')
                 ->modalDescription('Ingresa la lectura inicial del odómetro y adjunta la foto de evidencia para iniciar el recorrido.')
                 ->form([
@@ -42,9 +39,9 @@ class ViewAssignedTrip extends ViewRecord
                         ->prefixIcon('heroicon-m-calculator')
                         ->numeric()
                         ->required()
-                        ->minValue(fn (): int => $record->vehicle?->current_mileage ?? 0)
-                        ->default(fn (): ?int => $record->vehicle?->current_mileage)
-                        ->helperText(fn (): string => 'Odómetro actual del vehículo: '.number_format($record->vehicle?->current_mileage ?? 0).' km'),
+                        ->minValue(fn (): int => $this->getRecord()->vehicle?->current_mileage ?? 0)
+                        ->default(fn (): ?int => $this->getRecord()->vehicle?->current_mileage)
+                        ->helperText(fn (): string => 'Odómetro actual del vehículo: '.number_format($this->getRecord()->vehicle?->current_mileage ?? 0).' km'),
 
                     FileUpload::make('photo_evidence')
                         ->label('Foto del Odómetro de Salida')
@@ -61,7 +58,10 @@ class ViewAssignedTrip extends ViewRecord
                         ->placeholder('Observaciones opcionales sobre el estado de salida...')
                         ->rows(2),
                 ])
-                ->action(function (array $data) use ($record): void {
+                ->action(function (array $data): void {
+                    /** @var Trip $record */
+                    $record = $this->getRecord();
+
                     try {
                         app(RecordTripMileageAction::class)(new RecordMileageDTO(
                             tripId: $record->id,
@@ -77,6 +77,7 @@ class ViewAssignedTrip extends ViewRecord
                             ->success()
                             ->send();
 
+                        $record->refresh();
                         $this->refreshFormData(['status', 'actual_departure_at', 'initial_mileage']);
                     } catch (TripImmutableException|InvalidTripStateException|InvalidTripMileageException|DriverAlreadyInTripException $e) {
                         Notification::make()
@@ -91,7 +92,7 @@ class ViewAssignedTrip extends ViewRecord
                 ->label('FINALIZAR SERVICIO')
                 ->icon('heroicon-m-check-circle')
                 ->color('primary')
-                ->visible(fn (): bool => $record->canBeFinished())
+                ->visible(fn (): bool => $this->getRecord()->canBeFinished())
                 ->modalHeading('Finalizar Servicio y Registrar Llegada')
                 ->modalDescription('Ingresa la lectura final del odómetro y adjunta la foto de evidencia para completar el recorrido.')
                 ->form([
@@ -100,8 +101,8 @@ class ViewAssignedTrip extends ViewRecord
                         ->prefixIcon('heroicon-m-calculator')
                         ->numeric()
                         ->required()
-                        ->minValue(fn (): int => ($record->initial_mileage ?? 0) + 1)
-                        ->helperText(fn (): string => 'Kilometraje de salida registrado: '.number_format($record->initial_mileage ?? 0).' km'),
+                        ->minValue(fn (): int => ($this->getRecord()->initial_mileage ?? 0) + 1)
+                        ->helperText(fn (): string => 'Kilometraje de salida registrado: '.number_format($this->getRecord()->initial_mileage ?? 0).' km'),
 
                     FileUpload::make('photo_evidence')
                         ->label('Foto del Odómetro de Llegada')
@@ -118,7 +119,10 @@ class ViewAssignedTrip extends ViewRecord
                         ->placeholder('Observaciones opcionales de la entrega o estado final...')
                         ->rows(2),
                 ])
-                ->action(function (array $data) use ($record): void {
+                ->action(function (array $data): void {
+                    /** @var Trip $record */
+                    $record = $this->getRecord();
+
                     try {
                         app(RecordTripMileageAction::class)(new RecordMileageDTO(
                             tripId: $record->id,
@@ -134,6 +138,7 @@ class ViewAssignedTrip extends ViewRecord
                             ->success()
                             ->send();
 
+                        $record->refresh();
                         $this->refreshFormData(['status', 'actual_arrival_at', 'final_mileage', 'distance_traveled']);
                     } catch (TripImmutableException|InvalidTripStateException|InvalidTripMileageException $e) {
                         Notification::make()

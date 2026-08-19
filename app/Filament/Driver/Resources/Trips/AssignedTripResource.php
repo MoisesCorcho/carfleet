@@ -122,7 +122,11 @@ class AssignedTripResource extends Resource
                                     ->columnSpanFull()
                                     ->disabled(),
                             ])
-                            ->columns(2),
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 2,
+                            ])
+                            ->columnSpanFull(),
 
                         Section::make('Kilometraje y Rendimiento')
                             ->description('Lecturas de odómetro registradas durante el servicio.')
@@ -145,9 +149,13 @@ class AssignedTripResource extends Resource
                                     ->suffix('km')
                                     ->disabled(),
                             ])
-                            ->columns(3),
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 3,
+                            ])
+                            ->columnSpanFull(),
                     ])
-                    ->columns(1),
+                    ->columnSpanFull(),
             ]);
     }
 

@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Trips\RelationManagers;
 
 use App\Enums\Evidences\EvidenceTypeEnum;
+use App\Models\TripEvidence;
+use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Storage;
 use Override;
 
 class EvidencesRelationManager extends RelationManager
@@ -73,7 +78,10 @@ class EvidencesRelationManager extends RelationManager
                     ->disk('public')
                     ->width(80)
                     ->height(60)
-                    ->square(),
+                    ->square()
+                    ->url(fn (TripEvidence $record): ?string => $record->file_path ? Storage::disk('public')->url($record->file_path) : null)
+                    ->openUrlInNewTab()
+                    ->tooltip('Clic para abrir imagen en nueva pestaña'),
 
                 TextColumn::make('type')
                     ->label('Tipo')
@@ -101,6 +109,17 @@ class EvidencesRelationManager extends RelationManager
                     ->label('Fecha / Hora')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
+            ])
+            ->actions([
+                Action::make('viewPhoto')
+                    ->label('Ver Foto')
+                    ->icon('heroicon-m-eye')
+                    ->color('info')
+                    ->modalHeading(fn (TripEvidence $record): string => "Evidencia: {$record->type->label()}")
+                    ->modalWidth(Width::FourExtraLarge)
+                    ->modalContent(fn (TripEvidence $record): View => view('filament.resources.trips.evidence-preview', ['record' => $record]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar'),
             ])
             ->defaultSort('created_at', 'asc');
     }
