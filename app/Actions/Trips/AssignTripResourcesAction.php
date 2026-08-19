@@ -7,6 +7,7 @@ namespace App\Actions\Trips;
 use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
 use App\Exceptions\Trips\DriverNotEligibleException;
+use App\Exceptions\Trips\DriverScheduleConflictException;
 use App\Exceptions\Trips\TripImmutableException;
 use App\Exceptions\Trips\VehicleNotAvailableException;
 use App\Models\Driver;
@@ -21,6 +22,7 @@ class AssignTripResourcesAction
      *
      * @throws TripImmutableException
      * @throws DriverNotEligibleException
+     * @throws DriverScheduleConflictException
      * @throws VehicleNotAvailableException
      */
     public function __invoke(Trip $trip, int $vehicleId, int $driverId): Trip
@@ -42,6 +44,27 @@ class AssignTripResourcesAction
 
             if ($driver->isLicenseExpired()) {
                 throw DriverNotEligibleException::expiredLicense($driver->full_name);
+            }
+
+            // Time-slot conflict validation: Check if driver is already scheduled in an overlapping interval
+            $tripStart = $lockedTrip->scheduled_departure_at;
+            $tripEnd = $lockedTrip->scheduled_arrival_at ?? $tripStart->copy()->addHours(2);
+
+            $driverTrips = Trip::query()
+                ->where('driver_id', $driver->id)
+                ->where('id', '!=', $lockedTrip->id)
+                ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+                ->get();
+
+            foreach ($driverTrips as $otherTrip) {
+                $otherStart = $otherTrip->scheduled_departure_at;
+                $otherEnd = $otherTrip->scheduled_arrival_at ?? $otherStart->copy()->addHours(2);
+
+                if ($tripStart < $otherEnd && $tripEnd > $otherStart) {
+                    $conflictRange = $otherStart->format('d/m/Y H:i').' - '.$otherEnd->format('H:i');
+
+                    throw DriverScheduleConflictException::forDriver($driver->full_name, $otherTrip->code, $conflictRange);
+                }
             }
 
             /** @var Vehicle $vehicle */

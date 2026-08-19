@@ -67,6 +67,16 @@ DONDE se intenta asignar un conductor a un viaje con un vehículo de servicio p�
 CUANDO la categoría de licencia del conductor no autoriza la conducción de servicio público,  
 EL SISTEMA DEBE rechazar la asignación con una excepción de dominio explicativa.
 
+### R9 — Inconcurrencia Física del Conductor (Bloqueo de Múltiples Salidas)
+DONDE un conductor autenticado intenta iniciar la salida de un viaje asignado,  
+CUANDO dicho conductor ya tiene otro viaje activo en estado `en_curso`,  
+EL SISTEMA DEBE rechazar el inicio del servicio (`DriverAlreadyInTripException`) e indicar que debe finalizar el servicio en curso antes de iniciar uno nuevo.
+
+### R10 — Detección de Conflictos de Horario en Asignación (Time-Slot Overlap)
+DONDE se intenta asignar un conductor a un viaje programado o asignado,  
+CUANDO el conductor ya tiene asignado otro viaje cuyo intervalo de tiempo programado se solapa con el viaje destino,  
+EL SISTEMA DEBE rechazar la asignación (`DriverScheduleConflictException`) especificando el código y horario del viaje en conflicto.
+
 ---
 
 ## Decisiones de Producto
@@ -80,3 +90,6 @@ EL SISTEMA DEBE rechazar la asignación con una excepción de dominio explicativ
 | D4.5 | ¿Qué sucede al cancelar un viaje con recursos asignados? | El viaje pasa a `cancelado` y el vehículo asignado se libera de inmediato retornando a `disponible`. |
 | D4.6 | ¿Cómo se validan licencias al asignar? | Se exige que el conductor esté `activo`, con licencia no expirada y con categoría autorizada si el vehículo es de servicio público. |
 | D4.7 | ¿Se permite asignación directa al crear el viaje? | Sí; `CreateTripDTO` admite `vehicle_id` y `driver_id` opcionales. Si se proveen, el viaje nace directamente en `asignado` reservando el vehículo. |
+| D4.8 | ¿Puede un conductor tener dos viajes en curso a la vez? | No. Se aplica la invariante de inconcurrencia física: un chofer solo puede tener 1 viaje en `en_curso` simultáneamente. |
+| D4.9 | ¿Cómo se controlan solapamientos de agenda? | Motor de validación de colisiones temporales: rechaza asignar a un chofer en dos viajes cuyos rangos de horas programadas se intersequen. |
+

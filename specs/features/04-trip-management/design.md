@@ -30,6 +30,8 @@
 
 * `App\Exceptions\Trips\VehicleNotAvailableException`: Disparada cuando el vehículo no está en estado `disponible`.
 * `App\Exceptions\Trips\DriverNotEligibleException`: Disparada cuando el conductor no está activo, tiene licencia vencida o no califica para servicio público.
+* `App\Exceptions\Trips\DriverAlreadyInTripException`: Disparada cuando un chofer intenta iniciar un viaje teniendo ya otro en estado `en_curso`.
+* `App\Exceptions\Trips\DriverScheduleConflictException`: Disparada cuando se intenta asignar a un chofer en un viaje cuyo horario se solapa con otro viaje asignado/en curso.
 * `App\Exceptions\Trips\TripImmutableException`: Disparada cuando se intenta mutar o reasignar un viaje en estado `cerrado` o `cancelado`.
 * `App\Exceptions\Trips\InvalidTripDatesException`: Disparada cuando `scheduled_arrival_at` es anterior o igual a `scheduled_departure_at`.
 
@@ -68,14 +70,15 @@ readonly class CreateTripDTO
 * Invocable: `__invoke(Trip $trip, int $vehicleId, int $driverId): Trip`
 * Valida inmutabilidad del viaje (no `cerrado` ni `cancelado`).
 * Valida disponibilidad del vehículo (`disponible`).
-* Valida elegibilidad del conductor (`isEligibleForTrip()`) y categoría para servicio público (`canDrivePublicService()`).
-* Si el viaje ya tenía un vehículo previo asignado, lo revierte atómicamente a `disponible`.
-* Actualiza viaje a `asignado` y nuevo vehículo a `asignado`.
+* Valida elegibilidad del chofer (`activo`, licencia vigente y compatible con servicio público).
+* Valida motor de colisión de franja horaria (`DriverScheduleConflictException` si se cruza con otro viaje asignado).
+* Libera automáticamente el vehículo anterior a `disponible` en caso de reasignación.
 
 ### Action: `App\Actions\Trips\StartTripAction`
-* Invocable: `__invoke(Trip $trip): Trip`
+* Invocable: `__invoke(Trip $trip, ?int $initialMileage = null): Trip`
 * Valida que el viaje esté en estado `asignado`.
-* Actualiza atómicamente `actual_departure_at = now()`, viaje a `en_curso` y vehículo a `en_viaje`.
+* Valida inconcurrencia física (`DriverAlreadyInTripException` si el chofer ya está en otro viaje `en_curso`).
+* Marca `actual_departure_at = now()`, pasa el viaje a `en_curso` y el vehículo a `en_viaje`.
 
 ### Action: `App\Actions\Trips\CancelTripAction`
 * Invocable: `__invoke(Trip $trip, ?string $reason = null): Trip`

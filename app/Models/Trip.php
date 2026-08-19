@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Trips\TripStatusEnum;
+use App\Enums\Vehicles\VehicleStatusEnum;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -40,6 +41,15 @@ class Trip extends Model
 {
     /** @use HasFactory<TripFactory> */
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Trip $trip): void {
+            if ($trip->vehicle_id && $trip->vehicle?->status === VehicleStatusEnum::ASIGNADO) {
+                $trip->vehicle->update(['status' => VehicleStatusEnum::DISPONIBLE]);
+            }
+        });
+    }
 
     protected $fillable = [
         'code',

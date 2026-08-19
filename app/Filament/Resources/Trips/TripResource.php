@@ -8,6 +8,7 @@ use App\Actions\Trips\AssignTripResourcesAction;
 use App\Actions\Trips\CancelTripAction;
 use App\Enums\Trips\TripStatusEnum;
 use App\Exceptions\Trips\DriverNotEligibleException;
+use App\Exceptions\Trips\DriverScheduleConflictException;
 use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
 use App\Exceptions\Trips\VehicleNotAvailableException;
@@ -154,6 +155,10 @@ class TripResource extends Resource
                                 Select::make('vehicle_id')
                                     ->label('Vehículo')
                                     ->prefixIcon('heroicon-m-truck')
+                                    ->requiredWith('driver_id')
+                                    ->validationMessages([
+                                        'required_with' => 'Debes seleccionar un vehículo si asignas un conductor.',
+                                    ])
                                     ->options(function (?Trip $record): array {
                                         return Vehicle::query()
                                             ->where(function (Builder $query) use ($record): void {
@@ -176,6 +181,10 @@ class TripResource extends Resource
                                 Select::make('driver_id')
                                     ->label('Conductor Asignado')
                                     ->prefixIcon('heroicon-m-user')
+                                    ->requiredWith('vehicle_id')
+                                    ->validationMessages([
+                                        'required_with' => 'Debes seleccionar un conductor si asignas un vehículo.',
+                                    ])
                                     ->options(function (?Trip $record): array {
                                         return Driver::query()
                                             ->where(function (Builder $query) use ($record): void {
@@ -281,11 +290,10 @@ class TripResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make()
-                    ->visible(fn (Trip $record): bool => ! $record->isImmutable()),
-
                 ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make()
+                        ->visible(fn (Trip $record): bool => ! $record->isImmutable()),
                     Action::make('assignResources')
                         ->label('Asignar Recursos')
                         ->icon('heroicon-m-user-plus')
@@ -331,7 +339,7 @@ class TripResource extends Resource
                                     ->body("El viaje {$record->code} ha sido asignado correctamente.")
                                     ->success()
                                     ->send();
-                            } catch (VehicleNotAvailableException|DriverNotEligibleException|TripImmutableException $e) {
+                            } catch (VehicleNotAvailableException|DriverNotEligibleException|DriverScheduleConflictException|TripImmutableException $e) {
                                 Notification::make()
                                     ->title('Error al Asignar')
                                     ->body($e->getMessage())

@@ -7,6 +7,8 @@ namespace App\Filament\Resources\Trips\Pages;
 use App\Actions\Trips\CreateTripAction;
 use App\DTOs\Trips\CreateTripDTO;
 use App\Exceptions\Trips\DriverNotEligibleException;
+use App\Exceptions\Trips\DriverScheduleConflictException;
+use App\Exceptions\Trips\IncompleteTripResourcesException;
 use App\Exceptions\Trips\InvalidTripDatesException;
 use App\Exceptions\Trips\VehicleNotAvailableException;
 use App\Filament\Resources\Trips\TripResource;
@@ -27,7 +29,7 @@ class CreateTrip extends CreateRecord
 
         try {
             return $action($dto);
-        } catch (InvalidTripDatesException|VehicleNotAvailableException|DriverNotEligibleException $e) {
+        } catch (InvalidTripDatesException|VehicleNotAvailableException|DriverNotEligibleException|DriverScheduleConflictException|IncompleteTripResourcesException $e) {
             Notification::make()
                 ->title('Error al Crear Viaje')
                 ->body($e->getMessage())

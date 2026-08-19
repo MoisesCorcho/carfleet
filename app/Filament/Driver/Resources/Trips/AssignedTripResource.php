@@ -6,6 +6,7 @@ namespace App\Filament\Driver\Resources\Trips;
 
 use App\Actions\Trips\StartTripAction;
 use App\Enums\Trips\TripStatusEnum;
+use App\Exceptions\Trips\DriverAlreadyInTripException;
 use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
 use App\Filament\Driver\Resources\Trips\Pages\ListAssignedTrips;
@@ -191,7 +192,7 @@ class AssignedTripResource extends Resource
                                 ->body("El viaje {$record->code} ha iniciado exitosamente.")
                                 ->success()
                                 ->send();
-                        } catch (TripImmutableException|InvalidTripStateException $e) {
+                        } catch (TripImmutableException|InvalidTripStateException|DriverAlreadyInTripException $e) {
                             Notification::make()
                                 ->title('Error al Iniciar')
                                 ->body($e->getMessage())

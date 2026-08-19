@@ -12,6 +12,7 @@ use App\DTOs\Trips\CreateTripDTO;
 use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
 use App\Filament\Resources\Trips\Pages\CreateTrip;
+use App\Filament\Resources\Trips\Pages\EditTrip;
 use App\Filament\Resources\Trips\Pages\ListTrips;
 use App\Models\Driver;
 use App\Models\Requester;
@@ -191,4 +192,74 @@ test('admin can create trip from filament form', function () {
         'destination' => 'Barranquilla Norte',
         'status' => TripStatusEnum::PROGRAMADO->value,
     ]);
+});
+
+test('admin can assign resources when editing trip from filament form', function () {
+    $this->actingAs($this->adminUser);
+
+    $trip = Trip::factory()->scheduled()->create();
+    $vehicle = Vehicle::factory()->available()->create();
+    $driver = Driver::factory()->active()->create();
+
+    Livewire::test(EditTrip::class, ['record' => $trip->getKey()])
+        ->fillForm([
+            'vehicle_id' => $vehicle->id,
+            'driver_id' => $driver->id,
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($trip->fresh()->status)->toBe(TripStatusEnum::ASIGNADO)
+        ->and($trip->fresh()->vehicle_id)->toBe($vehicle->id)
+        ->and($trip->fresh()->driver_id)->toBe($driver->id)
+        ->and($vehicle->fresh()->status)->toBe(VehicleStatusEnum::ASIGNADO);
+});
+
+test('filament trip form requires both vehicle and driver if one is selected', function () {
+    $this->actingAs($this->adminUser);
+
+    $requester = Requester::factory()->create();
+    $vehicle = Vehicle::factory()->available()->create();
+    $driver = Driver::factory()->active()->create();
+
+    // Fill vehicle only -> driver_id must have required_with error
+    Livewire::test(CreateTrip::class)
+        ->fillForm([
+            'requester_id' => $requester->id,
+            'origin' => 'Origen',
+            'destination' => 'Destino',
+            'scheduled_departure_at' => now()->addDay()->format('Y-m-d H:i:s'),
+            'vehicle_id' => $vehicle->id,
+            'driver_id' => null,
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['driver_id' => 'required_with']);
+
+    // Fill driver only -> vehicle_id must have required_with error
+    Livewire::test(CreateTrip::class)
+        ->fillForm([
+            'requester_id' => $requester->id,
+            'origin' => 'Origen',
+            'destination' => 'Destino',
+            'scheduled_departure_at' => now()->addDay()->format('Y-m-d H:i:s'),
+            'vehicle_id' => null,
+            'driver_id' => $driver->id,
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['vehicle_id' => 'required_with']);
+});
+
+test('deleting an assigned trip automatically releases the assigned vehicle back to available', function () {
+    $vehicle = Vehicle::factory()->assigned()->create();
+    $driver = Driver::factory()->active()->create();
+    $trip = Trip::factory()->assigned()->create([
+        'vehicle_id' => $vehicle->id,
+        'driver_id' => $driver->id,
+    ]);
+
+    expect($vehicle->fresh()->status)->toBe(VehicleStatusEnum::ASIGNADO);
+
+    $trip->delete();
+
+    expect($vehicle->fresh()->status)->toBe(VehicleStatusEnum::DISPONIBLE);
 });

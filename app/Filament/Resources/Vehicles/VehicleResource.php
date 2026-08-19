@@ -85,7 +85,7 @@ class VehicleResource extends Resource
                                     ->prefixIcon('heroicon-m-identification')
                                     ->required()
                                     ->maxLength(16)
-                                    ->regex('/^[A-Z]{3}-?[0-9]{3}$|^[A-Z]{3}-?[0-9]{2}[A-Z]$/')
+                                    ->regex('/^[A-Z]{3}-?[0-9]{3}$|^[A-Z]{3}-?[0-9]{2}[A-Z]$/i')
                                     ->validationMessages([
                                         'regex' => 'La placa debe tener un formato válido (ej: ABC-123 o ABC123).',
                                     ])

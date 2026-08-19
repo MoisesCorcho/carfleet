@@ -10,7 +10,10 @@ use App\Actions\Trips\CreateTripAction;
 use App\Actions\Trips\StartTripAction;
 use App\DTOs\Trips\CreateTripDTO;
 use App\Enums\Drivers\LicenseCategoryEnum;
+use App\Exceptions\Trips\DriverAlreadyInTripException;
 use App\Exceptions\Trips\DriverNotEligibleException;
+use App\Exceptions\Trips\DriverScheduleConflictException;
+use App\Exceptions\Trips\IncompleteTripResourcesException;
 use App\Exceptions\Trips\InvalidTripDatesException;
 use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
@@ -100,4 +103,81 @@ test('cannot create trip with arrival date before or equal to departure date', f
 
     expect(fn () => app(CreateTripAction::class)($dto))
         ->toThrow(InvalidTripDatesException::class);
+});
+
+test('cannot start trip if driver already has another trip in progress (inconcurrencia fisica)', function () {
+    $driver = Driver::factory()->active()->create();
+    $vehicle1 = Vehicle::factory()->available()->create();
+    $vehicle2 = Vehicle::factory()->available()->create();
+
+    // Trip 1 already in progress with this driver
+    $activeTrip = Trip::factory()->assigned()->create([
+        'driver_id' => $driver->id,
+        'vehicle_id' => $vehicle1->id,
+    ]);
+    app(StartTripAction::class)($activeTrip);
+    expect($activeTrip->fresh()->isInProgress())->toBeTrue();
+
+    // Trip 2 assigned to same driver
+    $secondTrip = Trip::factory()->assigned()->create([
+        'driver_id' => $driver->id,
+        'vehicle_id' => $vehicle2->id,
+    ]);
+
+    expect(fn () => app(StartTripAction::class)($secondTrip))
+        ->toThrow(DriverAlreadyInTripException::class);
+});
+
+test('cannot assign driver if there is a schedule conflict with another assigned trip', function () {
+    $driver = Driver::factory()->active()->create();
+    $vehicle1 = Vehicle::factory()->available()->create();
+    $vehicle2 = Vehicle::factory()->available()->create();
+
+    // Trip 1 on Tomorrow 10:00 - 14:00
+    $trip1 = Trip::factory()->scheduled()->create([
+        'scheduled_departure_at' => now()->addDay()->setTime(10, 0),
+        'scheduled_arrival_at' => now()->addDay()->setTime(14, 0),
+    ]);
+    app(AssignTripResourcesAction::class)($trip1, $vehicle1->id, $driver->id);
+
+    // Trip 2 on Tomorrow 12:00 - 16:00 (overlaps with Trip 1)
+    $trip2 = Trip::factory()->scheduled()->create([
+        'scheduled_departure_at' => now()->addDay()->setTime(12, 0),
+        'scheduled_arrival_at' => now()->addDay()->setTime(16, 0),
+    ]);
+
+    expect(fn () => app(AssignTripResourcesAction::class)($trip2, $vehicle2->id, $driver->id))
+        ->toThrow(DriverScheduleConflictException::class);
+});
+
+test('cannot create trip with partial resource assignment (vehicle without driver or vice versa)', function () {
+    $requester = Requester::factory()->create();
+    $vehicle = Vehicle::factory()->available()->create();
+    $driver = Driver::factory()->active()->create();
+
+    // Vehicle without driver
+    $dtoVehicleOnly = new CreateTripDTO(
+        requesterId: $requester->id,
+        origin: 'Punto A',
+        destination: 'Punto B',
+        scheduledDepartureAt: now()->addDay()->format('Y-m-d H:i:s'),
+        vehicleId: $vehicle->id,
+        driverId: null
+    );
+
+    expect(fn () => app(CreateTripAction::class)($dtoVehicleOnly))
+        ->toThrow(IncompleteTripResourcesException::class);
+
+    // Driver without vehicle
+    $dtoDriverOnly = new CreateTripDTO(
+        requesterId: $requester->id,
+        origin: 'Punto A',
+        destination: 'Punto B',
+        scheduledDepartureAt: now()->addDay()->format('Y-m-d H:i:s'),
+        vehicleId: null,
+        driverId: $driver->id
+    );
+
+    expect(fn () => app(CreateTripAction::class)($dtoDriverOnly))
+        ->toThrow(IncompleteTripResourcesException::class);
 });

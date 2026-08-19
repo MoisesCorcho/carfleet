@@ -6,6 +6,7 @@ namespace App\Actions\Trips;
 
 use App\DTOs\Trips\CreateTripDTO;
 use App\Enums\Trips\TripStatusEnum;
+use App\Exceptions\Trips\IncompleteTripResourcesException;
 use App\Exceptions\Trips\InvalidTripDatesException;
 use App\Models\Trip;
 use Carbon\Carbon;
@@ -17,9 +18,14 @@ class CreateTripAction
      * Create a new scheduled trip with an atomic sequence code.
      *
      * @throws InvalidTripDatesException
+     * @throws IncompleteTripResourcesException
      */
     public function __invoke(CreateTripDTO $dto): Trip
     {
+        if (($dto->vehicleId && ! $dto->driverId) || (! $dto->vehicleId && $dto->driverId)) {
+            throw IncompleteTripResourcesException::forPartialAssignment();
+        }
+
         $departureAt = Carbon::parse($dto->scheduledDepartureAt);
 
         if ($dto->scheduledArrivalAt !== null) {

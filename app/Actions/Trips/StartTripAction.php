@@ -6,6 +6,7 @@ namespace App\Actions\Trips;
 
 use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
+use App\Exceptions\Trips\DriverAlreadyInTripException;
 use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
 use App\Models\Trip;
@@ -19,6 +20,7 @@ class StartTripAction
      *
      * @throws TripImmutableException
      * @throws InvalidTripStateException
+     * @throws DriverAlreadyInTripException
      */
     public function __invoke(Trip $trip, ?int $initialMileage = null): Trip
     {
@@ -32,6 +34,21 @@ class StartTripAction
 
             if (! $lockedTrip->isAssigned()) {
                 throw InvalidTripStateException::cannotStart($lockedTrip->code, $lockedTrip->status);
+            }
+
+            if ($lockedTrip->driver_id) {
+                /** @var Trip|null $activeTrip */
+                $activeTrip = Trip::query()
+                    ->where('driver_id', $lockedTrip->driver_id)
+                    ->where('status', TripStatusEnum::EN_CURSO)
+                    ->where('id', '!=', $lockedTrip->id)
+                    ->first();
+
+                if ($activeTrip) {
+                    $driverName = $lockedTrip->driver?->full_name ?? 'asignado';
+
+                    throw DriverAlreadyInTripException::forDriver($driverName, $activeTrip->code);
+                }
             }
 
             /** @var Vehicle $vehicle */
