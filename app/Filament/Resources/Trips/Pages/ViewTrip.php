@@ -34,7 +34,7 @@ class ViewTrip extends ViewRecord
                 ->icon('heroicon-m-user-plus')
                 ->color('info')
                 ->visible(fn (): bool => $this->getRecord()->canBeAssigned())
-                ->form([
+                ->schema([
                     Select::make('vehicle_id')
                         ->label('Vehículo Disponible')
                         ->prefixIcon('heroicon-m-truck')
@@ -95,7 +95,7 @@ class ViewTrip extends ViewRecord
                 ->color('danger')
                 ->visible(fn (): bool => $this->getRecord()->canBeCancelled())
                 ->requiresConfirmation()
-                ->form([
+                ->schema([
                     Textarea::make('reason')
                         ->label('Motivo de Cancelación')
                         ->placeholder('Explique brevemente la razón de la cancelación...')

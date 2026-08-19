@@ -321,7 +321,7 @@ class TripResource extends Resource
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
+            ->recordActions([
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make()
@@ -331,7 +331,7 @@ class TripResource extends Resource
                         ->icon('heroicon-m-user-plus')
                         ->color('info')
                         ->visible(fn (Trip $record): bool => $record->canBeAssigned())
-                        ->form([
+                        ->schema([
                             Select::make('vehicle_id')
                                 ->label('Vehículo Disponible')
                                 ->prefixIcon('heroicon-m-truck')
@@ -386,7 +386,7 @@ class TripResource extends Resource
                         ->color('danger')
                         ->visible(fn (Trip $record): bool => $record->canBeCancelled())
                         ->requiresConfirmation()
-                        ->form([
+                        ->schema([
                             Textarea::make('reason')
                                 ->label('Motivo de Cancelación')
                                 ->placeholder('Explique brevemente la razón de la cancelación...')

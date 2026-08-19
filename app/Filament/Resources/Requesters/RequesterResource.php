@@ -232,7 +232,7 @@ class RequesterResource extends Resource
 
                 TrashedFilter::make(),
             ])
-            ->actions([
+            ->recordActions([
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
@@ -243,7 +243,7 @@ class RequesterResource extends Resource
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Opciones del Solicitante'),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
                 RestoreBulkAction::make(),
                 ForceDeleteBulkAction::make(),

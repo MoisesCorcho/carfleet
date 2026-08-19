@@ -33,7 +33,7 @@ class ViewAssignedTrip extends ViewRecord
                 ->visible(fn (): bool => $this->getRecord()->canBeStarted())
                 ->modalHeading('Iniciar Salida de Viaje')
                 ->modalDescription('Ingresa la lectura inicial del odómetro y adjunta la foto de evidencia para iniciar el recorrido.')
-                ->form([
+                ->schema([
                     TextInput::make('initial_mileage')
                         ->label('Kilometraje Inicial (Salida)')
                         ->prefixIcon('heroicon-m-calculator')
@@ -95,7 +95,7 @@ class ViewAssignedTrip extends ViewRecord
                 ->visible(fn (): bool => $this->getRecord()->canBeFinished())
                 ->modalHeading('Finalizar Servicio y Registrar Llegada')
                 ->modalDescription('Ingresa la lectura final del odómetro y adjunta la foto de evidencia para completar el recorrido.')
-                ->form([
+                ->schema([
                     TextInput::make('final_mileage')
                         ->label('Kilometraje Final (Llegada)')
                         ->prefixIcon('heroicon-m-calculator')

@@ -213,7 +213,7 @@ class AssignedTripResource extends Resource
                         fn (TripStatusEnum $status): array => [$status->value => $status->label()]
                     )),
             ])
-            ->actions([
+            ->recordActions([
                 Action::make('startTrip')
                     ->label('INICIAR SERVICIO')
                     ->icon('heroicon-m-play')
@@ -222,7 +222,7 @@ class AssignedTripResource extends Resource
                     ->visible(fn (Trip $record): bool => $record->canBeStarted())
                     ->modalHeading('Iniciar Salida de Viaje')
                     ->modalDescription('Ingresa la lectura inicial del odómetro y adjunta la foto de evidencia para iniciar el recorrido.')
-                    ->form([
+                    ->schema([
                         TextInput::make('initial_mileage')
                             ->label('Kilometraje Inicial (Salida)')
                             ->prefixIcon('heroicon-m-calculator')
@@ -279,7 +279,7 @@ class AssignedTripResource extends Resource
                     ->visible(fn (Trip $record): bool => $record->canBeFinished())
                     ->modalHeading('Finalizar Servicio y Registrar Llegada')
                     ->modalDescription('Ingresa la lectura final del odómetro y adjunta la foto de evidencia para completar el recorrido.')
-                    ->form([
+                    ->schema([
                         TextInput::make('final_mileage')
                             ->label('Kilometraje Final (Llegada)')
                             ->prefixIcon('heroicon-m-calculator')

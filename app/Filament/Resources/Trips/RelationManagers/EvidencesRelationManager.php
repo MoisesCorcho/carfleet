@@ -110,7 +110,7 @@ class EvidencesRelationManager extends RelationManager
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
-            ->actions([
+            ->recordActions([
                 Action::make('viewPhoto')
                     ->label('Ver Foto')
                     ->icon('heroicon-m-eye')
