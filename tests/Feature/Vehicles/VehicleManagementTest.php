@@ -222,3 +222,26 @@ test('user without view vehicle permissions cannot access vehicles list', functi
     Livewire::test(ListVehicles::class)
         ->assertForbidden();
 });
+
+test('accepts lowercase plate format in form and stores it in uppercase', function () {
+    $this->actingAs($this->adminUser);
+
+    Livewire::test(CreateVehicle::class)
+        ->fillForm([
+            'plate_number' => 'flt-200',
+            'service_type' => ServiceTypeEnum::PUBLICO->value,
+            'vehicle_type' => VehicleTypeEnum::CAMIONETA->value,
+            'brand' => 'Toyota',
+            'model' => 'Hilux',
+            'year' => 2024,
+            'current_mileage' => 0,
+            'status' => VehicleStatusEnum::DISPONIBLE->value,
+            'fuel_type' => FuelTypeEnum::DIESEL->value,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $this->assertDatabaseHas('vehicles', [
+        'plate_number' => 'FLT-200',
+    ]);
+});

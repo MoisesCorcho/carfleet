@@ -25,10 +25,10 @@ Actualmente se construye como un **prototipo funcional completo y robusto sobre 
 
 | Entrega | Estado | Ubicación |
 |---|---|---|
-| Autenticación & Panel Admin Filament v4 | Completa | `app/Providers/Filament/AdminPanelProvider.php` |
+| Autenticación & Multi-Panel Filament v4 (`/admin` y `/driver`) | Completa / En progreso | `app/Providers/Filament/AdminPanelProvider.php`, `app/Providers/Filament/DriverPanelProvider.php` |
 | Estándares AI y Configuración MCP | Completa | `.ai/guidelines/project-conventions.md`, `AGENTS.md`, `.mcp.json` |
 | Verificación Git Hooks (Lefthook) | Completa | `lefthook.yml` (Pint + Sail Test) |
-| Enums del Dominio Base | En progreso | `app/Enums/{Area}/*Enum.php` |
+| Enums del Dominio Base | Completa | `app/Enums/{Area}/*Enum.php` |
 
 ---
 
@@ -39,7 +39,7 @@ Actualmente se construye como un **prototipo funcional completo y robusto sobre 
 | F01 | **Gestión de Vehículos** (`01-vehicle-management`) | 0 · Catálogos Base | Completa | Fundación de Dominio |
 | F02 | **Gestión de Conductores** (`02-driver-management`) | 0 · Catálogos Base | Completa | Fundación de Dominio |
 | F03 | **Gestión de Solicitantes** (`03-requester-management`) | 0 · Catálogos Base | Specs en progreso | Fundación de Dominio |
-| F04 | **Gestión y Asignación de Viajes** (`04-trip-management`) | 1 · Operación Core | Specs en progreso | F01, F02, F03 |
+| F04 | **Gestión y Asignación de Viajes** (`04-trip-management`) | 1 · Operación Core | Completa | F01, F02, F03 |
 | F05 | **Kilometraje y Evidencias Fotográficas** (`05-mileage-and-evidences`) | 1 · Operación Core | Specs en progreso | F04 |
 | F06 | **Tanqueos y Vouchers de Combustible** (`06-fuel-and-vouchers`) | 2 · Combustible | Specs en progreso | F01, F04 |
 | F07 | **Firma Digital y Cierre de Viaje** (`07-digital-signatures`) | 2 · Cierre Operativo | Specs en progreso | F04, F05, F06 |

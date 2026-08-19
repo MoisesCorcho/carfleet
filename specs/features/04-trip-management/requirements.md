@@ -1,4 +1,4 @@
-> **Estado:** Specs auditadas y refinadas  
+> **Estado:** Completa  
 > **ID:** F04 · **Slug:** `04-trip-management`  
 > **Prerequisitos:** F01 (`Vehicle`), F02 (`Driver`), F03 (`Requester`)
 
@@ -50,6 +50,33 @@ DONDE un viaje se encuentra en estado `cerrado` o `cancelado`,
 CUANDO se intenta revertir su estado o modificar sus asignaciones de recursos principales,  
 EL SISTEMA DEBE rechazar la mutación para preservar la integridad histórica del servicio.
 
+### R6 — Cancelación de Viaje y Liberación de Recursos
+DONDE un administrador cancela un viaje en estado `programado` o `asignado`,  
+CUANDO se ejecuta la cancelación mediante la acción correspondiente,  
+EL SISTEMA DEBE transicionar el viaje al estado `cancelado`  
+Y, si tenía un vehículo asignado, revertir el estado del vehículo a `disponible`.
+
+### R7 — Reasignación de Recursos
+DONDE un viaje en estado `asignado` requiere cambio de vehículo o conductor antes de iniciar,  
+CUANDO el administrador reasigna un nuevo vehículo disponible,  
+EL SISTEMA DEBE revertir el estado del vehículo anterior a `disponible`, asociar el nuevo vehículo  
+Y cambiar el estado del nuevo vehículo a `asignado`.
+
+### R8 — Compatibilidad de Licencia vs Tipo de Servicio
+DONDE se intenta asignar un conductor a un viaje con un vehículo de servicio público,  
+CUANDO la categoría de licencia del conductor no autoriza la conducción de servicio público,  
+EL SISTEMA DEBE rechazar la asignación con una excepción de dominio explicativa.
+
+### R9 — Inconcurrencia Física del Conductor (Bloqueo de Múltiples Salidas)
+DONDE un conductor autenticado intenta iniciar la salida de un viaje asignado,  
+CUANDO dicho conductor ya tiene otro viaje activo en estado `en_curso`,  
+EL SISTEMA DEBE rechazar el inicio del servicio (`DriverAlreadyInTripException`) e indicar que debe finalizar el servicio en curso antes de iniciar uno nuevo.
+
+### R10 — Detección de Conflictos de Horario en Asignación (Time-Slot Overlap)
+DONDE se intenta asignar un conductor a un viaje programado o asignado,  
+CUANDO el conductor ya tiene asignado otro viaje cuyo intervalo de tiempo programado se solapa con el viaje destino,  
+EL SISTEMA DEBE rechazar la asignación (`DriverScheduleConflictException`) especificando el código y horario del viaje en conflicto.
+
 ---
 
 ## Decisiones de Producto
@@ -57,5 +84,12 @@ EL SISTEMA DEBE rechazar la mutación para preservar la integridad histórica de
 | ID | Pregunta / Ambivalencia | Decisión Aprobada |
 |---|---|---|
 | D4.1 | ¿Cuáles son los estados del ciclo de vida del viaje? | Backed Enum `TripStatusEnum`: `programado`, `asignado`, `en_curso`, `finalizado`, `cerrado`, `cancelado`. |
-| D4.2 | ¿El conductor ve viajes asignados a otros conductores? | No. La Policy de Filament restringe las consultas del conductor a sus propios registros (`driver_id == current_user->driver->id`). |
-| D4.3 | ¿Cómo se genera el código del viaje? | Formato secuencial anual automático: `TRIP-YYYY-NNNN`. |
+| D4.2 | ¿El conductor ve viajes asignados a otros conductores? | No. El panel `/driver` restringe las consultas del conductor a sus propios registros (`driver_id == current_user->driver->id`). |
+| D4.3 | ¿Cómo se genera el código del viaje? | Formato secuencial anual automático: `TRIP-YYYY-NNNN` generado atómicamente con bloqueo pesimista (`lockForUpdate`). |
+| D4.4 | ¿Cómo se estructura la experiencia de usuario en Filament? | Arquitectura Multi-Panel desacoplada: Panel `/admin` para administración central y Panel `/driver` (Top navigation, layout táctil optimizado) para conductores en campo. |
+| D4.5 | ¿Qué sucede al cancelar un viaje con recursos asignados? | El viaje pasa a `cancelado` y el vehículo asignado se libera de inmediato retornando a `disponible`. |
+| D4.6 | ¿Cómo se validan licencias al asignar? | Se exige que el conductor esté `activo`, con licencia no expirada y con categoría autorizada si el vehículo es de servicio público. |
+| D4.7 | ¿Se permite asignación directa al crear el viaje? | Sí; `CreateTripDTO` admite `vehicle_id` y `driver_id` opcionales. Si se proveen, el viaje nace directamente en `asignado` reservando el vehículo. |
+| D4.8 | ¿Puede un conductor tener dos viajes en curso a la vez? | No. Se aplica la invariante de inconcurrencia física: un chofer solo puede tener 1 viaje en `en_curso` simultáneamente. |
+| D4.9 | ¿Cómo se controlan solapamientos de agenda? | Motor de validación de colisiones temporales: rechaza asignar a un chofer en dos viajes cuyos rangos de horas programadas se intersequen. |
+
