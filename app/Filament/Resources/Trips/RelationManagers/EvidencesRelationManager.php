@@ -59,6 +59,7 @@ class EvidencesRelationManager extends RelationManager
                     ->disk('public')
                     ->directory('evidences/odometers')
                     ->image()
+                    ->extraInputAttributes(['capture' => 'environment'])
                     ->required(),
 
                 Textarea::make('notes')
