@@ -1,4 +1,4 @@
-> **Estado:** Specs en progreso  
+> **Estado:** Completado  
 > **ID:** F05 · **Slug:** `05-mileage-and-evidences`  
 > **Prerequisitos:** F04 (`Trip`)
 
