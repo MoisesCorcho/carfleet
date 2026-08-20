@@ -159,6 +159,54 @@ test('driver can finish trip with mileage and photo in Driver Panel (US5.2)', fu
         ->and($vehicle->fresh()->status)->toBe(VehicleStatusEnum::DISPONIBLE);
 });
 
+test('driver can choose gallery as photo source when starting and finishing trip', function () {
+    Filament::setCurrentPanel(Filament::getPanel('driver'));
+    $this->actingAs($this->driverUser);
+
+    $vehicle = Vehicle::factory()->assigned()->create(['current_mileage' => 15000]);
+    $trip = Trip::factory()->assigned()->create([
+        'driver_id' => $this->driverProfile->id,
+        'vehicle_id' => $vehicle->id,
+    ]);
+
+    $startFile = UploadedFile::fake()->image('gallery_start.jpg');
+
+    Livewire::test(ListAssignedTrips::class)
+        ->mountTableAction('startTrip', $trip)
+        ->assertTableActionDataSet([
+            'photo_source' => 'camera',
+        ])
+        ->setTableActionData([
+            'photo_source' => 'gallery',
+            'initial_mileage' => 15020,
+            'photo_evidence' => $startFile,
+        ])
+        ->callMountedTableAction()
+        ->assertHasNoTableActionErrors();
+
+    expect($trip->fresh()->status)->toBe(TripStatusEnum::EN_CURSO)
+        ->and($trip->fresh()->initial_mileage)->toBe(15020);
+
+    $finishFile = UploadedFile::fake()->image('gallery_finish.jpg');
+
+    Livewire::test(ListAssignedTrips::class)
+        ->mountTableAction('finishTrip', $trip)
+        ->assertTableActionDataSet([
+            'photo_source' => 'camera',
+        ])
+        ->setTableActionData([
+            'photo_source' => 'gallery',
+            'final_mileage' => 15150,
+            'photo_evidence' => $finishFile,
+        ])
+        ->callMountedTableAction()
+        ->assertHasNoTableActionErrors();
+
+    expect($trip->fresh()->status)->toBe(TripStatusEnum::FINALIZADO)
+        ->and($trip->fresh()->final_mileage)->toBe(15150)
+        ->and($trip->fresh()->distance_traveled)->toBe(130);
+});
+
 test('admin can see mileage and evidence in Trip view (US5.3)', function () {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
     $this->actingAs($this->adminUser);

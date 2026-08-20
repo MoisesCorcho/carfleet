@@ -16,8 +16,10 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Utilities\Get;
 
 class ViewAssignedTrip extends ViewRecord
 {
@@ -43,16 +45,38 @@ class ViewAssignedTrip extends ViewRecord
                         ->default(fn (): ?int => $this->getRecord()->vehicle?->current_mileage)
                         ->helperText(fn (): string => 'Odómetro actual del vehículo: '.number_format($this->getRecord()->vehicle?->current_mileage ?? 0).' km'),
 
+                    ToggleButtons::make('photo_source')
+                        ->label('Origen de la Foto')
+                        ->options([
+                            'camera' => 'Tomar Foto',
+                            'gallery' => 'Elegir de Galería',
+                        ])
+                        ->icons([
+                            'camera' => 'heroicon-m-camera',
+                            'gallery' => 'heroicon-m-photo',
+                        ])
+                        ->colors([
+                            'camera' => 'primary',
+                            'gallery' => 'gray',
+                        ])
+                        ->default('camera')
+                        ->inline()
+                        ->live()
+                        ->dehydrated(false),
+
                     FileUpload::make('photo_evidence')
                         ->label('Foto del Odómetro de Salida')
+                        ->key(fn (Get $get): string => 'photo_evidence_view_start_'.($get('photo_source') ?? 'camera'))
                         ->image()
-                        ->extraInputAttributes(['capture' => 'environment'])
+                        ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                         ->directory('evidences/odometers')
                         ->disk('public')
                         ->imageEditor()
                         ->maxSize(5120)
                         ->required()
-                        ->helperText('Fotografía nítida del tablero con el odómetro visible.'),
+                        ->helperText(fn (Get $get): string => ($get('photo_source') ?? 'camera') === 'camera'
+                            ? 'Se abrirá la cámara de tu celular para capturar el odómetro en tiempo real.'
+                            : 'Selecciona una fotografía nítida del tablero desde tu galería o archivos.'),
 
                     Textarea::make('notes')
                         ->label('Observaciones de Salida')
@@ -105,16 +129,38 @@ class ViewAssignedTrip extends ViewRecord
                         ->minValue(fn (): int => ($this->getRecord()->initial_mileage ?? 0) + 1)
                         ->helperText(fn (): string => 'Kilometraje de salida registrado: '.number_format($this->getRecord()->initial_mileage ?? 0).' km'),
 
+                    ToggleButtons::make('photo_source')
+                        ->label('Origen de la Foto')
+                        ->options([
+                            'camera' => 'Tomar Foto',
+                            'gallery' => 'Elegir de Galería',
+                        ])
+                        ->icons([
+                            'camera' => 'heroicon-m-camera',
+                            'gallery' => 'heroicon-m-photo',
+                        ])
+                        ->colors([
+                            'camera' => 'primary',
+                            'gallery' => 'gray',
+                        ])
+                        ->default('camera')
+                        ->inline()
+                        ->live()
+                        ->dehydrated(false),
+
                     FileUpload::make('photo_evidence')
                         ->label('Foto del Odómetro de Llegada')
+                        ->key(fn (Get $get): string => 'photo_evidence_view_finish_'.($get('photo_source') ?? 'camera'))
                         ->image()
-                        ->extraInputAttributes(['capture' => 'environment'])
+                        ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                         ->directory('evidences/odometers')
                         ->disk('public')
                         ->imageEditor()
                         ->maxSize(5120)
                         ->required()
-                        ->helperText('Fotografía nítida del odómetro al llegar a destino.'),
+                        ->helperText(fn (Get $get): string => ($get('photo_source') ?? 'camera') === 'camera'
+                            ? 'Se abrirá la cámara de tu celular para capturar el odómetro en tiempo real.'
+                            : 'Selecciona una fotografía nítida del tablero desde tu galería o archivos.'),
 
                     Textarea::make('notes')
                         ->label('Observaciones de Llegada')

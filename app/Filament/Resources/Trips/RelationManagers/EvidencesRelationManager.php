@@ -11,7 +11,9 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Tables\Columns\ImageColumn;
@@ -54,12 +56,32 @@ class EvidencesRelationManager extends RelationManager
                     ->numeric()
                     ->suffix('km'),
 
+                ToggleButtons::make('photo_source')
+                    ->label('Origen de la Foto')
+                    ->options([
+                        'camera' => 'Tomar Foto',
+                        'gallery' => 'Elegir de Galería',
+                    ])
+                    ->icons([
+                        'camera' => 'heroicon-m-camera',
+                        'gallery' => 'heroicon-m-photo',
+                    ])
+                    ->colors([
+                        'camera' => 'primary',
+                        'gallery' => 'gray',
+                    ])
+                    ->default('camera')
+                    ->inline()
+                    ->live()
+                    ->dehydrated(false),
+
                 FileUpload::make('file_path')
                     ->label('Fotografía de Evidencia')
+                    ->key(fn (Get $get): string => 'file_path_evidence_'.($get('photo_source') ?? 'camera'))
                     ->disk('public')
                     ->directory('evidences/odometers')
                     ->image()
-                    ->extraInputAttributes(['capture' => 'environment'])
+                    ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                     ->required(),
 
                 Textarea::make('notes')
