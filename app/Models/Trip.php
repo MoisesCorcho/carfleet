@@ -185,6 +185,11 @@ class Trip extends Model
         return $this->isAssigned();
     }
 
+    public function canBeFinished(): bool
+    {
+        return $this->isInProgress();
+    }
+
     public function canBeCancelled(): bool
     {
         return ! $this->isImmutable() && ! $this->isInProgress() && ! $this->isCompleted();

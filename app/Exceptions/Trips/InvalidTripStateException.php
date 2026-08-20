@@ -18,4 +18,9 @@ class InvalidTripStateException extends DomainException
     {
         return new self("No se puede cancelar el viaje {$code} porque su estado actual es '{$status->label()}'.");
     }
+
+    public static function cannotFinish(string $code, TripStatusEnum $status): self
+    {
+        return new self("No se puede finalizar el viaje {$code} porque su estado actual es '{$status->label()}' (Se requiere estado 'En Curso').");
+    }
 }

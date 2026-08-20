@@ -28,16 +28,13 @@ class ViewTrip extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        /** @var Trip $record */
-        $record = $this->getRecord();
-
         return [
             Action::make('assignResources')
                 ->label('Asignar Recursos')
                 ->icon('heroicon-m-user-plus')
                 ->color('info')
-                ->visible(fn (): bool => $record->canBeAssigned())
-                ->form([
+                ->visible(fn (): bool => $this->getRecord()->canBeAssigned())
+                ->schema([
                     Select::make('vehicle_id')
                         ->label('Vehículo Disponible')
                         ->prefixIcon('heroicon-m-truck')
@@ -64,7 +61,10 @@ class ViewTrip extends ViewRecord
                         ->searchable()
                         ->required(),
                 ])
-                ->action(function (array $data) use ($record): void {
+                ->action(function (array $data): void {
+                    /** @var Trip $record */
+                    $record = $this->getRecord();
+
                     try {
                         app(AssignTripResourcesAction::class)(
                             $record,
@@ -78,6 +78,7 @@ class ViewTrip extends ViewRecord
                             ->success()
                             ->send();
 
+                        $record->refresh();
                         $this->refreshFormData(['vehicle_id', 'driver_id', 'status']);
                     } catch (VehicleNotAvailableException|DriverNotEligibleException|TripImmutableException $e) {
                         Notification::make()
@@ -92,15 +93,18 @@ class ViewTrip extends ViewRecord
                 ->label('Cancelar Viaje')
                 ->icon('heroicon-m-x-circle')
                 ->color('danger')
-                ->visible(fn (): bool => $record->canBeCancelled())
+                ->visible(fn (): bool => $this->getRecord()->canBeCancelled())
                 ->requiresConfirmation()
-                ->form([
+                ->schema([
                     Textarea::make('reason')
                         ->label('Motivo de Cancelación')
                         ->placeholder('Explique brevemente la razón de la cancelación...')
                         ->required(),
                 ])
-                ->action(function (array $data) use ($record): void {
+                ->action(function (array $data): void {
+                    /** @var Trip $record */
+                    $record = $this->getRecord();
+
                     try {
                         app(CancelTripAction::class)($record, (string) ($data['reason'] ?? ''));
 
@@ -110,6 +114,7 @@ class ViewTrip extends ViewRecord
                             ->warning()
                             ->send();
 
+                        $record->refresh();
                         $this->refreshFormData(['status', 'notes']);
                     } catch (TripImmutableException|InvalidTripStateException $e) {
                         Notification::make()
@@ -121,10 +126,10 @@ class ViewTrip extends ViewRecord
                 }),
 
             EditAction::make()
-                ->visible(fn (): bool => ! $record->isImmutable()),
+                ->visible(fn (): bool => ! $this->getRecord()->isImmutable()),
 
             DeleteAction::make()
-                ->visible(fn (): bool => $record->canBeCancelled()),
+                ->visible(fn (): bool => $this->getRecord()->canBeCancelled()),
         ];
     }
 }

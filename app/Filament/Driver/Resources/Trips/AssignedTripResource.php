@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Driver\Resources\Trips;
 
-use App\Actions\Trips\StartTripAction;
+use App\Actions\Trips\RecordTripMileageAction;
+use App\DTOs\Trips\RecordMileageDTO;
 use App\Enums\Trips\TripStatusEnum;
 use App\Exceptions\Trips\DriverAlreadyInTripException;
+use App\Exceptions\Trips\InvalidTripMileageException;
 use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
 use App\Filament\Driver\Resources\Trips\Pages\ListAssignedTrips;
@@ -16,6 +18,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -107,15 +110,52 @@ class AssignedTripResource extends Resource
                                     ->native(false)
                                     ->disabled(),
 
+                                DateTimePicker::make('actual_arrival_at')
+                                    ->label('Llegada Real Registrada')
+                                    ->prefixIcon('heroicon-m-clock')
+                                    ->native(false)
+                                    ->disabled(),
+
                                 Textarea::make('notes')
                                     ->label('Instrucciones / Observaciones')
                                     ->rows(3)
                                     ->columnSpanFull()
                                     ->disabled(),
                             ])
-                            ->columns(2),
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 2,
+                            ])
+                            ->columnSpanFull(),
+
+                        Section::make('Kilometraje y Rendimiento')
+                            ->description('Lecturas de odómetro registradas durante el servicio.')
+                            ->schema([
+                                TextInput::make('initial_mileage')
+                                    ->label('Kilometraje Inicial')
+                                    ->numeric()
+                                    ->suffix('km')
+                                    ->disabled(),
+
+                                TextInput::make('final_mileage')
+                                    ->label('Kilometraje Final')
+                                    ->numeric()
+                                    ->suffix('km')
+                                    ->disabled(),
+
+                                TextInput::make('distance_traveled')
+                                    ->label('Distancia Recorrida')
+                                    ->numeric()
+                                    ->suffix('km')
+                                    ->disabled(),
+                            ])
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 3,
+                            ])
+                            ->columnSpanFull(),
                     ])
-                    ->columns(1),
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -173,28 +213,114 @@ class AssignedTripResource extends Resource
                         fn (TripStatusEnum $status): array => [$status->value => $status->label()]
                     )),
             ])
-            ->actions([
+            ->recordActions([
                 Action::make('startTrip')
                     ->label('INICIAR SERVICIO')
                     ->icon('heroicon-m-play')
                     ->color('success')
                     ->button()
                     ->visible(fn (Trip $record): bool => $record->canBeStarted())
-                    ->requiresConfirmation()
                     ->modalHeading('Iniciar Salida de Viaje')
-                    ->modalDescription('¿Confirmas que inicias el recorrido del servicio ahora?')
-                    ->action(function (Trip $record): void {
+                    ->modalDescription('Ingresa la lectura inicial del odómetro y adjunta la foto de evidencia para iniciar el recorrido.')
+                    ->schema([
+                        TextInput::make('initial_mileage')
+                            ->label('Kilometraje Inicial (Salida)')
+                            ->prefixIcon('heroicon-m-calculator')
+                            ->numeric()
+                            ->required()
+                            ->minValue(fn (Trip $record): int => $record->vehicle?->current_mileage ?? 0)
+                            ->default(fn (Trip $record): ?int => $record->vehicle?->current_mileage)
+                            ->helperText(fn (Trip $record): string => 'Odómetro actual del vehículo: '.number_format($record->vehicle?->current_mileage ?? 0).' km'),
+
+                        FileUpload::make('photo_evidence')
+                            ->label('Foto del Odómetro de Salida')
+                            ->image()
+                            ->directory('evidences/odometers')
+                            ->disk('public')
+                            ->imageEditor()
+                            ->maxSize(5120)
+                            ->required()
+                            ->helperText('Fotografía nítida del tablero con el odómetro visible.'),
+
+                        Textarea::make('notes')
+                            ->label('Observaciones de Salida')
+                            ->placeholder('Observaciones opcionales sobre el estado de salida...')
+                            ->rows(2),
+                    ])
+                    ->action(function (Trip $record, array $data): void {
                         try {
-                            app(StartTripAction::class)($record);
+                            app(RecordTripMileageAction::class)(new RecordMileageDTO(
+                                tripId: $record->id,
+                                mileage: (int) $data['initial_mileage'],
+                                photoEvidence: $data['photo_evidence'],
+                                isFinal: false,
+                                notes: isset($data['notes']) ? (string) $data['notes'] : null,
+                            ));
 
                             Notification::make()
                                 ->title('Servicio Iniciado')
                                 ->body("El viaje {$record->code} ha iniciado exitosamente.")
                                 ->success()
                                 ->send();
-                        } catch (TripImmutableException|InvalidTripStateException|DriverAlreadyInTripException $e) {
+                        } catch (TripImmutableException|InvalidTripStateException|InvalidTripMileageException|DriverAlreadyInTripException $e) {
                             Notification::make()
                                 ->title('Error al Iniciar')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                Action::make('finishTrip')
+                    ->label('FINALIZAR SERVICIO')
+                    ->icon('heroicon-m-check-circle')
+                    ->color('primary')
+                    ->button()
+                    ->visible(fn (Trip $record): bool => $record->canBeFinished())
+                    ->modalHeading('Finalizar Servicio y Registrar Llegada')
+                    ->modalDescription('Ingresa la lectura final del odómetro y adjunta la foto de evidencia para completar el recorrido.')
+                    ->schema([
+                        TextInput::make('final_mileage')
+                            ->label('Kilometraje Final (Llegada)')
+                            ->prefixIcon('heroicon-m-calculator')
+                            ->numeric()
+                            ->required()
+                            ->minValue(fn (Trip $record): int => ($record->initial_mileage ?? 0) + 1)
+                            ->helperText(fn (Trip $record): string => 'Kilometraje de salida registrado: '.number_format($record->initial_mileage ?? 0).' km'),
+
+                        FileUpload::make('photo_evidence')
+                            ->label('Foto del Odómetro de Llegada')
+                            ->image()
+                            ->directory('evidences/odometers')
+                            ->disk('public')
+                            ->imageEditor()
+                            ->maxSize(5120)
+                            ->required()
+                            ->helperText('Fotografía nítida del odómetro al llegar a destino.'),
+
+                        Textarea::make('notes')
+                            ->label('Observaciones de Llegada')
+                            ->placeholder('Observaciones opcionales de la entrega o estado final...')
+                            ->rows(2),
+                    ])
+                    ->action(function (Trip $record, array $data): void {
+                        try {
+                            app(RecordTripMileageAction::class)(new RecordMileageDTO(
+                                tripId: $record->id,
+                                mileage: (int) $data['final_mileage'],
+                                photoEvidence: $data['photo_evidence'],
+                                isFinal: true,
+                                notes: isset($data['notes']) ? (string) $data['notes'] : null,
+                            ));
+
+                            Notification::make()
+                                ->title('Servicio Finalizado')
+                                ->body("El viaje {$record->code} ha sido finalizado con éxito.")
+                                ->success()
+                                ->send();
+                        } catch (TripImmutableException|InvalidTripStateException|InvalidTripMileageException $e) {
+                            Notification::make()
+                                ->title('Error al Finalizar')
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();

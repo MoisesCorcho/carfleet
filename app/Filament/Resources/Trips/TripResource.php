@@ -16,6 +16,7 @@ use App\Filament\Resources\Trips\Pages\CreateTrip;
 use App\Filament\Resources\Trips\Pages\EditTrip;
 use App\Filament\Resources\Trips\Pages\ListTrips;
 use App\Filament\Resources\Trips\Pages\ViewTrip;
+use App\Filament\Resources\Trips\RelationManagers\EvidencesRelationManager;
 use App\Models\Driver;
 use App\Models\Requester;
 use App\Models\Trip;
@@ -216,6 +217,37 @@ class TripResource extends Resource
                                 'md' => 2,
                             ])
                             ->columnSpanFull(),
+
+                        Section::make('Control de Kilometraje y Recorrido')
+                            ->description('Lecturas de odómetro registradas durante el servicio.')
+                            ->schema([
+                                TextInput::make('initial_mileage')
+                                    ->label('Kilometraje Inicial')
+                                    ->numeric()
+                                    ->suffix('km')
+                                    ->disabled()
+                                    ->dehydrated(false),
+
+                                TextInput::make('final_mileage')
+                                    ->label('Kilometraje Final')
+                                    ->numeric()
+                                    ->suffix('km')
+                                    ->disabled()
+                                    ->dehydrated(false),
+
+                                TextInput::make('distance_traveled')
+                                    ->label('Distancia Recorrida')
+                                    ->numeric()
+                                    ->suffix('km')
+                                    ->disabled()
+                                    ->dehydrated(false),
+                            ])
+                            ->columns([
+                                'sm' => 1,
+                                'md' => 3,
+                            ])
+                            ->columnSpanFull()
+                            ->visible(fn (?Trip $record): bool => $record !== null),
                     ])
                     ->columnSpanFull(),
             ]);
@@ -289,7 +321,7 @@ class TripResource extends Resource
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
+            ->recordActions([
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make()
@@ -299,7 +331,7 @@ class TripResource extends Resource
                         ->icon('heroicon-m-user-plus')
                         ->color('info')
                         ->visible(fn (Trip $record): bool => $record->canBeAssigned())
-                        ->form([
+                        ->schema([
                             Select::make('vehicle_id')
                                 ->label('Vehículo Disponible')
                                 ->prefixIcon('heroicon-m-truck')
@@ -354,7 +386,7 @@ class TripResource extends Resource
                         ->color('danger')
                         ->visible(fn (Trip $record): bool => $record->canBeCancelled())
                         ->requiresConfirmation()
-                        ->form([
+                        ->schema([
                             Textarea::make('reason')
                                 ->label('Motivo de Cancelación')
                                 ->placeholder('Explique brevemente la razón de la cancelación...')
@@ -382,6 +414,13 @@ class TripResource extends Resource
                         ->visible(fn (Trip $record): bool => $record->canBeCancelled()),
                 ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            EvidencesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

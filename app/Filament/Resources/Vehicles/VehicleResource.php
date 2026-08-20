@@ -293,7 +293,7 @@ class VehicleResource extends Resource
 
                 TrashedFilter::make(),
             ])
-            ->actions([
+            ->recordActions([
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
@@ -350,7 +350,7 @@ class VehicleResource extends Resource
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Opciones del Vehículo'),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 DeleteBulkAction::make(),
                 RestoreBulkAction::make(),
                 ForceDeleteBulkAction::make(),

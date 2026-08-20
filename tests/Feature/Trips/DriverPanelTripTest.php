@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Models\Vehicle;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -67,17 +69,23 @@ test('driver in driver panel only sees their assigned trips (D4.2 & R3)', functi
 });
 
 test('driver can start assigned trip from driver panel (R3)', function () {
+    Storage::fake('public');
     Filament::setCurrentPanel(Filament::getPanel('driver'));
     $this->actingAs($this->driverUser);
 
-    $vehicle = Vehicle::factory()->assigned()->create();
+    $vehicle = Vehicle::factory()->assigned()->create(['current_mileage' => 10000]);
     $myTrip = Trip::factory()->assigned()->create([
         'driver_id' => $this->driverProfile->id,
         'vehicle_id' => $vehicle->id,
     ]);
 
+    $file = UploadedFile::fake()->image('odometer.jpg');
+
     Livewire::test(ListAssignedTrips::class)
-        ->callTableAction('startTrip', $myTrip)
+        ->callTableAction('startTrip', $myTrip, data: [
+            'initial_mileage' => 10000,
+            'photo_evidence' => $file,
+        ])
         ->assertHasNoTableActionErrors();
 
     expect($myTrip->fresh()->status)->toBe(TripStatusEnum::EN_CURSO)
