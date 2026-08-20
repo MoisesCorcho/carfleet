@@ -15,6 +15,7 @@ jobs:
     needs: ci
     runs-on: ubuntu-latest
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       TARGET_DIR: /home/moisescorchodev-carfleet/htdocs/carfleet.moisescorchodev.tech
       SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
 
