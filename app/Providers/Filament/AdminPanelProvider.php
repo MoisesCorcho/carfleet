@@ -6,6 +6,8 @@ namespace App\Providers\Filament;
 
 use App\Filament\Widgets\ActiveDriversControlWidget;
 use App\Filament\Widgets\FleetOverviewWidget;
+use App\Filament\Widgets\FleetStatusDoughnutWidget;
+use App\Filament\Widgets\MonthlyFleetMileageChartWidget;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -45,6 +47,8 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 FleetOverviewWidget::class,
+                FleetStatusDoughnutWidget::class,
+                MonthlyFleetMileageChartWidget::class,
                 ActiveDriversControlWidget::class,
             ])
             ->middleware([
