@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
+use App\Exceptions\Trips\InvalidTripStateException;
 use Database\Factories\TripFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -45,6 +46,10 @@ class Trip extends Model
     protected static function booted(): void
     {
         static::deleting(function (Trip $trip): void {
+            if ($trip->isImmutable() || $trip->isInProgress() || $trip->isCompleted()) {
+                throw InvalidTripStateException::cannotDelete($trip->code, $trip->status);
+            }
+
             if ($trip->vehicle_id && $trip->vehicle?->status === VehicleStatusEnum::ASIGNADO) {
                 $trip->vehicle->update(['status' => VehicleStatusEnum::DISPONIBLE]);
             }
@@ -193,6 +198,20 @@ class Trip extends Model
     public function canBeCancelled(): bool
     {
         return ! $this->isImmutable() && ! $this->isInProgress() && ! $this->isCompleted();
+    }
+
+    public function canBeSigned(): bool
+    {
+        return $this->isCompleted() && ! $this->isImmutable();
+    }
+
+    public function canBeClosed(): bool
+    {
+        return $this->isCompleted()
+            && ! $this->isImmutable()
+            && $this->initial_mileage !== null
+            && $this->final_mileage !== null
+            && $this->signature !== null;
     }
 
     /**

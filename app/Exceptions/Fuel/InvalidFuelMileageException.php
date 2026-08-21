@@ -17,4 +17,9 @@ class InvalidFuelMileageException extends DomainException
     {
         return new self("El kilometraje del tanqueo ({$refuelMileage} km) no puede ser menor al kilometraje de inicio del viaje ({$initialMileage} km).");
     }
+
+    public static function aboveTripFinalMileage(int $finalMileage, int $refuelMileage): self
+    {
+        return new self("El kilometraje del tanqueo ({$refuelMileage} km) no puede superar el kilometraje de llegada del viaje ({$finalMileage} km).");
+    }
 }

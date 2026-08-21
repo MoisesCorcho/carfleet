@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Evidences\EvidenceTypeEnum;
+use App\Enums\Trips\TripStatusEnum;
+use App\Exceptions\Trips\TripImmutableException;
 use Database\Factories\TripEvidenceFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,10 +34,22 @@ class TripEvidence extends Model
     protected static function booted(): void
     {
         static::deleting(function (TripEvidence $evidence): void {
+            if ($evidence->isImmutable()) {
+                throw TripImmutableException::forTrip(
+                    $evidence->trip?->code ?? 'N/A',
+                    $evidence->trip?->status ?? TripStatusEnum::CERRADO
+                );
+            }
+
             if ($evidence->file_path && Storage::disk('public')->exists($evidence->file_path)) {
                 Storage::disk('public')->delete($evidence->file_path);
             }
         });
+    }
+
+    public function isImmutable(): bool
+    {
+        return $this->trip?->isImmutable() ?? false;
     }
 
     protected $fillable = [

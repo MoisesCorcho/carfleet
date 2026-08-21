@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Tests\Feature\Fuel;
 
 use App\Actions\Fuel\RegisterFuelLogAction;
+use App\Actions\Fuel\UpdateFuelLogAction;
 use App\DTOs\Fuel\RegisterFuelLogDTO;
+use App\DTOs\Fuel\UpdateFuelLogDTO;
 use App\Enums\Evidences\EvidenceTypeEnum;
 use App\Exceptions\Fuel\FuelVehicleMismatchException;
 use App\Exceptions\Fuel\FutureRefuelDateException;
 use App\Exceptions\Fuel\InvalidFuelCostException;
+use App\Exceptions\Fuel\InvalidFuelDateException;
 use App\Exceptions\Fuel\InvalidFuelMileageException;
 use App\Exceptions\Fuel\InvalidFuelQuantityException;
 use App\Exceptions\Trips\TripImmutableException;
@@ -269,4 +272,126 @@ test('deletes voucher photo from storage when fuel log is deleted (lifecycle tea
     $fuelLog->delete();
 
     Storage::disk('public')->assertMissing($path);
+});
+
+test('throws exception when refuel date is before trip departure date (invariants)', function () {
+    $vehicle = Vehicle::factory()->inTrip()->create();
+    $trip = Trip::factory()->inProgress()->create([
+        'vehicle_id' => $vehicle->id,
+        'actual_departure_at' => now()->subHours(2),
+        'initial_mileage' => 10000,
+    ]);
+
+    $dto = new RegisterFuelLogDTO(
+        vehicleId: $vehicle->id,
+        refuelDate: now()->subHours(5)->toDateTimeString(), // 5 hours ago (before departure 2 hours ago)
+        mileageAtRefuel: 10100,
+        gallons: 5.0,
+        totalCost: 75000,
+        tripId: $trip->id,
+    );
+
+    app(RegisterFuelLogAction::class)($dto);
+})->throws(InvalidFuelDateException::class);
+
+test('throws exception when refuel date is after trip arrival date (invariants)', function () {
+    $vehicle = Vehicle::factory()->available()->create();
+    $trip = Trip::factory()->completed()->create([
+        'vehicle_id' => $vehicle->id,
+        'actual_departure_at' => now()->subHours(6),
+        'actual_arrival_at' => now()->subHours(3),
+        'initial_mileage' => 10000,
+        'final_mileage' => 10200,
+    ]);
+
+    $dto = new RegisterFuelLogDTO(
+        vehicleId: $vehicle->id,
+        refuelDate: now()->subHour()->toDateTimeString(), // 1 hour ago (after arrival 3 hours ago)
+        mileageAtRefuel: 10150,
+        gallons: 5.0,
+        totalCost: 75000,
+        tripId: $trip->id,
+    );
+
+    app(RegisterFuelLogAction::class)($dto);
+})->throws(InvalidFuelDateException::class);
+
+test('throws exception when refuel mileage exceeds trip final mileage (invariants)', function () {
+    $vehicle = Vehicle::factory()->available()->create();
+    $trip = Trip::factory()->completed()->create([
+        'vehicle_id' => $vehicle->id,
+        'actual_departure_at' => now()->subHours(6),
+        'actual_arrival_at' => now()->subHours(2),
+        'initial_mileage' => 10000,
+        'final_mileage' => 10200,
+    ]);
+
+    $dto = new RegisterFuelLogDTO(
+        vehicleId: $vehicle->id,
+        refuelDate: now()->subHours(4)->toDateTimeString(),
+        mileageAtRefuel: 10500, // Exceeds final mileage of 10200
+        gallons: 5.0,
+        totalCost: 75000,
+        tripId: $trip->id,
+    );
+
+    app(RegisterFuelLogAction::class)($dto);
+})->throws(InvalidFuelMileageException::class);
+
+test('throws exception when attempting to delete fuel log from closed trip (invariants)', function () {
+    $trip = Trip::factory()->closed()->create();
+    $fuelLog = FuelLog::factory()->create([
+        'trip_id' => $trip->id,
+        'vehicle_id' => $trip->vehicle_id,
+    ]);
+
+    expect(fn () => $fuelLog->delete())->toThrow(TripImmutableException::class);
+});
+
+test('can update existing fuel log via UpdateFuelLogAction (invariants)', function () {
+    $vehicle = Vehicle::factory()->create(['current_mileage' => 10000]);
+    $fuelLog = FuelLog::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'gallons' => 10.0,
+        'total_cost' => 150000,
+        'mileage_at_refuel' => 10100,
+    ]);
+
+    $updateDto = new UpdateFuelLogDTO(
+        fuelLogId: $fuelLog->id,
+        vehicleId: $vehicle->id,
+        refuelDate: now()->subHour()->toDateTimeString(),
+        mileageAtRefuel: 10150,
+        gallons: 12.0,
+        totalCost: 180000,
+        notes: 'Actualizado con voucher verificado',
+    );
+
+    $updated = app(UpdateFuelLogAction::class)($updateDto);
+
+    expect($updated->gallons)->toBe('12.00')
+        ->and($updated->total_cost)->toBe(180000)
+        ->and($updated->mileage_at_refuel)->toBe(10150)
+        ->and($updated->notes)->toBe('Actualizado con voucher verificado');
+});
+
+test('throws exception when updating fuel log of an immutable closed trip', function () {
+    $trip = Trip::factory()->closed()->create();
+    $fuelLog = FuelLog::factory()->create([
+        'trip_id' => $trip->id,
+        'vehicle_id' => $trip->vehicle_id,
+    ]);
+
+    $updateDto = new UpdateFuelLogDTO(
+        fuelLogId: $fuelLog->id,
+        vehicleId: $trip->vehicle_id,
+        refuelDate: now()->toDateTimeString(),
+        mileageAtRefuel: 10100,
+        gallons: 10.0,
+        totalCost: 150000,
+        tripId: $trip->id,
+    );
+
+    expect(fn () => app(UpdateFuelLogAction::class)($updateDto))
+        ->toThrow(TripImmutableException::class);
 });

@@ -319,8 +319,10 @@ class FuelLogResource extends Resource
             ->recordActions([
                 ActionGroup::make([
                     ViewAction::make(),
-                    EditAction::make(),
-                    DeleteAction::make(),
+                    EditAction::make()
+                        ->visible(fn (FuelLog $record): bool => ! $record->isImmutable()),
+                    DeleteAction::make()
+                        ->visible(fn (FuelLog $record): bool => ! $record->isImmutable()),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Opciones de Tanqueo'),

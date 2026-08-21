@@ -7,6 +7,7 @@ namespace Tests\Feature\Fuel;
 use App\Enums\Evidences\EvidenceTypeEnum;
 use App\Filament\Driver\Resources\Trips\Pages\ListAssignedTrips;
 use App\Filament\Resources\FuelLogs\Pages\CreateFuelLog;
+use App\Filament\Resources\FuelLogs\Pages\EditFuelLog;
 use App\Filament\Resources\FuelLogs\Pages\ListFuelLogs;
 use App\Filament\Resources\FuelLogs\Pages\ViewFuelLog;
 use App\Filament\Resources\Trips\Pages\ViewTrip;
@@ -176,4 +177,48 @@ test('driver can register fuel log for in-progress trip from driver panel (US6.1
         ->and($evidence->file_path)->toBe($fuelLog->voucher_photo_path);
 
     Storage::disk('public')->assertExists($fuelLog->voucher_photo_path);
+});
+
+test('admin can edit fuel log via EditFuelLog page', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $this->actingAs($this->adminUser);
+
+    $vehicle = Vehicle::factory()->create(['current_mileage' => 10000]);
+    $fuelLog = FuelLog::factory()->create([
+        'vehicle_id' => $vehicle->id,
+        'gallons' => 10.0,
+        'total_cost' => 150000,
+        'mileage_at_refuel' => 10100,
+        'voucher_number' => 'V-OLD-01',
+    ]);
+
+    Livewire::test(EditFuelLog::class, ['record' => $fuelLog->id])
+        ->fillForm([
+            'gallons' => 12.50,
+            'total_cost' => 180000,
+            'voucher_number' => 'V-EDIT-99',
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $fuelLog->refresh();
+    expect((float) $fuelLog->gallons)->toBe(12.50)
+        ->and($fuelLog->total_cost)->toBe(180000)
+        ->and($fuelLog->voucher_number)->toBe('V-EDIT-99');
+});
+
+test('admin cannot edit or delete fuel log of closed trip from Filament table actions', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $this->actingAs($this->adminUser);
+
+    $trip = Trip::factory()->closed()->create();
+    $fuelLog = FuelLog::factory()->create([
+        'trip_id' => $trip->id,
+        'vehicle_id' => $trip->vehicle_id,
+        'voucher_number' => 'V-CLOSED-TRIP',
+    ]);
+
+    Livewire::test(ListFuelLogs::class)
+        ->assertTableActionHidden('edit', $fuelLog)
+        ->assertTableActionHidden('delete', $fuelLog);
 });

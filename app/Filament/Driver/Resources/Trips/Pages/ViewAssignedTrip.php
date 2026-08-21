@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Filament\Driver\Resources\Trips\Pages;
 
+use App\Actions\Trips\CaptureTripSignatureAction;
+use App\Actions\Trips\CloseTripAction;
 use App\Actions\Trips\RecordTripMileageAction;
+use App\DTOs\Trips\CaptureSignatureDTO;
 use App\DTOs\Trips\RecordMileageDTO;
 use App\Exceptions\Trips\DriverAlreadyInTripException;
+use App\Exceptions\Trips\InvalidSignatureDataException;
 use App\Exceptions\Trips\InvalidTripMileageException;
 use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
+use App\Exceptions\Trips\TripMissingEvidenceException;
+use App\Exceptions\Trips\TripMissingSignatureException;
 use App\Filament\Driver\Resources\Trips\AssignedTripResource;
 use App\Models\Trip;
 use Filament\Actions\Action;
@@ -17,6 +23,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Components\ViewField;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Utilities\Get;
@@ -191,6 +198,88 @@ class ViewAssignedTrip extends ViewRecord
                     } catch (TripImmutableException|InvalidTripStateException|InvalidTripMileageException $e) {
                         Notification::make()
                             ->title('Error al Finalizar')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
+            Action::make('captureSignature')
+                ->label('FIRMAR CONFORMIDAD')
+                ->icon('heroicon-m-pencil-square')
+                ->color('warning')
+                ->visible(fn (): bool => $this->getRecord()->canBeSigned())
+                ->modalHeading('Firma Digital de Conformidad')
+                ->modalDescription('El solicitante del servicio debe estampar su firma digital para validar la entrega y permitir el cierre formal.')
+                ->modalSubmitActionLabel('Guardar Firma')
+                ->schema([
+                    TextInput::make('signer_name')
+                        ->label('Nombre del Solicitante / Firmante')
+                        ->prefixIcon('heroicon-m-user')
+                        ->required()
+                        ->maxLength(128)
+                        ->default(fn (): string => $this->getRecord()->requester?->name ?? ''),
+
+                    ViewField::make('signature_data')
+                        ->label('Trazo de Firma')
+                        ->required()
+                        ->view('filament.forms.components.signature-pad'),
+                ])
+                ->action(function (array $data): void {
+                    /** @var Trip $record */
+                    $record = $this->getRecord();
+
+                    try {
+                        app(CaptureTripSignatureAction::class)(new CaptureSignatureDTO(
+                            tripId: $record->id,
+                            signerName: (string) $data['signer_name'],
+                            signatureBase64: (string) $data['signature_data'],
+                        ));
+
+                        Notification::make()
+                            ->title('Firma Registrada')
+                            ->body("La firma de conformidad para el viaje {$record->code} fue capturada exitosamente.")
+                            ->success()
+                            ->send();
+
+                        $record->refresh();
+                        $this->refreshFormData(['status']);
+                    } catch (TripImmutableException|InvalidTripStateException|InvalidSignatureDataException $e) {
+                        Notification::make()
+                            ->title('Error al Capturar Firma')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
+            Action::make('closeTrip')
+                ->label('CERRAR VIAJE')
+                ->icon('heroicon-m-lock-closed')
+                ->color('success')
+                ->visible(fn (): bool => $this->getRecord()->canBeClosed())
+                ->requiresConfirmation()
+                ->modalHeading('Cierre Formal del Servicio')
+                ->modalDescription('¿Confirmas el cierre formal del viaje? Esta acción es definitiva, el registro quedará inmutable y el vehículo pasará a estado disponible.')
+                ->modalSubmitActionLabel('Confirmar Cierre')
+                ->action(function (): void {
+                    /** @var Trip $record */
+                    $record = $this->getRecord();
+
+                    try {
+                        app(CloseTripAction::class)($record);
+
+                        Notification::make()
+                            ->title('Viaje Cerrado')
+                            ->body("El viaje {$record->code} ha sido cerrado formalmente.")
+                            ->success()
+                            ->send();
+
+                        $record->refresh();
+                        $this->refreshFormData(['status']);
+                    } catch (TripImmutableException|InvalidTripStateException|InvalidTripMileageException|TripMissingEvidenceException|TripMissingSignatureException $e) {
+                        Notification::make()
+                            ->title('Error al Cerrar Viaje')
                             ->body($e->getMessage())
                             ->danger()
                             ->send();

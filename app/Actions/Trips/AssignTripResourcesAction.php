@@ -8,6 +8,7 @@ use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
 use App\Exceptions\Trips\DriverNotEligibleException;
 use App\Exceptions\Trips\DriverScheduleConflictException;
+use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
 use App\Exceptions\Trips\VehicleNotAvailableException;
 use App\Models\Driver;
@@ -21,6 +22,7 @@ class AssignTripResourcesAction
      * Assign vehicle and driver resources to a scheduled or assigned trip.
      *
      * @throws TripImmutableException
+     * @throws InvalidTripStateException
      * @throws DriverNotEligibleException
      * @throws DriverScheduleConflictException
      * @throws VehicleNotAvailableException
@@ -33,6 +35,10 @@ class AssignTripResourcesAction
 
             if ($lockedTrip->isImmutable()) {
                 throw TripImmutableException::forTrip($lockedTrip->code, $lockedTrip->status);
+            }
+
+            if (! ($lockedTrip->isScheduled() || $lockedTrip->isAssigned())) {
+                throw InvalidTripStateException::cannotReassign($lockedTrip->code, $lockedTrip->status);
             }
 
             /** @var Driver $driver */

@@ -22,4 +22,9 @@ class DriverNotEligibleException extends DomainException
     {
         return new self("El conductor {$driverName} no posee categoría de licencia autorizada para servicio público.");
     }
+
+    public static function cannotDeleteInService(string $driverName): self
+    {
+        return new self("No se puede eliminar el conductor {$driverName} porque tiene servicios activos o asignados.");
+    }
 }
