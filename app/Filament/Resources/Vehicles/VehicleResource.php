@@ -15,6 +15,7 @@ use App\Filament\Resources\Vehicles\Pages\EditVehicle;
 use App\Filament\Resources\Vehicles\Pages\ListVehicles;
 use App\Filament\Resources\Vehicles\Pages\ViewVehicle;
 use App\Filament\Resources\Vehicles\RelationManagers\FuelLogsRelationManager;
+use App\Filament\Resources\Vehicles\RelationManagers\TripsRelationManager;
 use App\Models\Vehicle;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -366,6 +367,7 @@ class VehicleResource extends Resource
     {
         return [
             FuelLogsRelationManager::class,
+            TripsRelationManager::class,
         ];
     }
 
