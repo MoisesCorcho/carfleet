@@ -110,6 +110,40 @@ class Trip extends Model
         });
     }
 
+    public function elapsedTimeForHumans(): Attribute
+    {
+        return Attribute::get(function (): ?string {
+            if (! $this->actual_departure_at) {
+                return null;
+            }
+
+            $endTime = $this->actual_arrival_at ?? now();
+            $diffInMinutes = (int) $this->actual_departure_at->diffInMinutes($endTime);
+
+            $hours = intdiv($diffInMinutes, 60);
+            $minutes = $diffInMinutes % 60;
+
+            if ($hours === 0) {
+                return "{$minutes}m";
+            }
+
+            return "{$hours}h {$minutes}m";
+        });
+    }
+
+    public function elapsedMinutes(): Attribute
+    {
+        return Attribute::get(function (): ?int {
+            if (! $this->actual_departure_at) {
+                return null;
+            }
+
+            $endTime = $this->actual_arrival_at ?? now();
+
+            return (int) $this->actual_departure_at->diffInMinutes($endTime);
+        });
+    }
+
     public function requester(): BelongsTo
     {
         return $this->belongsTo(Requester::class);

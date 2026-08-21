@@ -114,7 +114,10 @@ class DriverResource extends Resource
 
                                         return $user->id;
                                     })
-                                    ->helperText('Selecciona un usuario o créalo directamente con el botón "+".'),
+                                    ->disabled(fn (?Driver $record): bool => $record?->activeTrip !== null)
+                                    ->helperText(fn (?Driver $record): string => $record?->activeTrip !== null
+                                        ? '⚠️ Bloqueado: No se puede cambiar la cuenta mientras el conductor tenga un viaje activo.'
+                                        : 'Selecciona un usuario o créalo directamente con el botón "+".'),
 
                                 TextInput::make('full_name')
                                     ->label('Nombre Completo')
@@ -188,7 +191,10 @@ class DriverResource extends Resource
                                     )->all())
                                     ->default(LicenseCategoryEnum::C1->value)
                                     ->required()
-                                    ->helperText('Categoría autorizada en la licencia (B1..B3 Particular, C1..C3 Público).'),
+                                    ->disabled(fn (?Driver $record): bool => $record?->activeTrip !== null)
+                                    ->helperText(fn (?Driver $record): string => $record?->activeTrip !== null
+                                        ? '⚠️ Bloqueado: No se puede cambiar la categoría mientras el conductor tenga un viaje activo.'
+                                        : 'Categoría autorizada en la licencia (B1..B3 Particular, C1..C3 Público).'),
 
                                 DatePicker::make('license_expires_at')
                                     ->label('Vencimiento de Licencia')
@@ -204,7 +210,11 @@ class DriverResource extends Resource
                                         fn (DriverStatusEnum $status): array => [$status->value => $status->label()]
                                     )->all())
                                     ->default(DriverStatusEnum::ACTIVO->value)
-                                    ->required(),
+                                    ->required()
+                                    ->disabled(fn (?Driver $record): bool => $record?->activeTrip !== null)
+                                    ->helperText(fn (?Driver $record): ?string => $record?->activeTrip !== null
+                                        ? '⚠️ Bloqueado: No se puede desactivar o suspender mientras el conductor tenga un viaje activo.'
+                                        : null),
                             ])
                             ->columns([
                                 'sm' => 1,

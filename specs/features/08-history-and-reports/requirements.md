@@ -1,4 +1,4 @@
-> **Estado:** Specs en progreso  
+> **Estado:** Completado  
 > **ID:** F08 · **Slug:** `08-history-and-reports`  
 > **Prerequisitos:** F01..F07
 

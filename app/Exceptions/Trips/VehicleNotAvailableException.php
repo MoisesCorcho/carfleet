@@ -18,4 +18,14 @@ class VehicleNotAvailableException extends DomainException
     {
         return new self("No se puede eliminar el vehículo {$plateNumber} porque tiene servicios activos o asignados (Estado actual: {$status->label()}).");
     }
+
+    public static function cannotChangeStatusInService(string $plateNumber, VehicleStatusEnum $status): self
+    {
+        return new self("No se puede cambiar el estado del vehículo {$plateNumber} mientras tiene servicios activos o asignados (Estado actual: {$status->label()}).");
+    }
+
+    public static function cannotModifyCriticalFieldsInService(string $plateNumber): self
+    {
+        return new self("No se pueden modificar datos críticos (placa, tipo de vehículo o modalidad) del vehículo {$plateNumber} mientras tiene servicios activos o asignados.");
+    }
 }

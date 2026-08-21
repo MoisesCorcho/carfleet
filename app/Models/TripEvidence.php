@@ -33,6 +33,15 @@ class TripEvidence extends Model
 
     protected static function booted(): void
     {
+        static::updating(function (TripEvidence $evidence): void {
+            if ($evidence->isImmutable()) {
+                throw TripImmutableException::forTrip(
+                    $evidence->trip?->code ?? 'N/A',
+                    $evidence->trip?->status ?? TripStatusEnum::CERRADO
+                );
+            }
+        });
+
         static::deleting(function (TripEvidence $evidence): void {
             if ($evidence->isImmutable()) {
                 throw TripImmutableException::forTrip(

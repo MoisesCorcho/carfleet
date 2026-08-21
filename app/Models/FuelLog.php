@@ -35,6 +35,15 @@ class FuelLog extends Model
 
     protected static function booted(): void
     {
+        static::updating(function (FuelLog $fuelLog): void {
+            if ($fuelLog->isImmutable()) {
+                throw TripImmutableException::forTrip(
+                    $fuelLog->trip?->code ?? 'N/A',
+                    $fuelLog->trip?->status ?? TripStatusEnum::CERRADO
+                );
+            }
+        });
+
         static::deleting(function (FuelLog $fuelLog): void {
             if ($fuelLog->isImmutable()) {
                 throw TripImmutableException::forTrip(

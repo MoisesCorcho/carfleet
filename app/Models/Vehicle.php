@@ -41,6 +41,32 @@ class Vehicle extends Model
 
     protected static function booted(): void
     {
+        static::updating(function (Vehicle $vehicle): void {
+            $hasActiveTrips = $vehicle->trips()
+                ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+                ->exists();
+
+            if (! $hasActiveTrips) {
+                return;
+            }
+
+            $hasInProgressTrips = $vehicle->trips()
+                ->where('status', TripStatusEnum::EN_CURSO)
+                ->exists();
+
+            if ($vehicle->isDirty('status') && $vehicle->status === VehicleStatusEnum::DISPONIBLE && $hasInProgressTrips) {
+                throw VehicleNotAvailableException::cannotChangeStatusInService($vehicle->plate_number, $vehicle->getOriginal('status') ?? $vehicle->status);
+            }
+
+            if ($vehicle->isDirty('status') && in_array($vehicle->status, [VehicleStatusEnum::MANTENIMIENTO, VehicleStatusEnum::FUERA_DE_SERVICIO], true)) {
+                throw VehicleNotAvailableException::cannotChangeStatusInService($vehicle->plate_number, $vehicle->getOriginal('status') ?? $vehicle->status);
+            }
+
+            if ($vehicle->isDirty(['plate_number', 'service_type', 'vehicle_type'])) {
+                throw VehicleNotAvailableException::cannotModifyCriticalFieldsInService($vehicle->getOriginal('plate_number') ?? $vehicle->plate_number);
+            }
+        });
+
         static::deleting(function (Vehicle $vehicle): void {
             if ($vehicle->status === VehicleStatusEnum::EN_VIAJE || $vehicle->status === VehicleStatusEnum::ASIGNADO) {
                 throw VehicleNotAvailableException::cannotDeleteInService($vehicle->plate_number, $vehicle->status);

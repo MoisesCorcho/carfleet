@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -40,6 +41,28 @@ class Driver extends Model
 
     protected static function booted(): void
     {
+        static::updating(function (Driver $driver): void {
+            $hasActiveTrips = $driver->trips()
+                ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+                ->exists();
+
+            if (! $hasActiveTrips) {
+                return;
+            }
+
+            if ($driver->isDirty('status') && $driver->status !== DriverStatusEnum::ACTIVO) {
+                throw DriverNotEligibleException::cannotDeactivateInService($driver->full_name);
+            }
+
+            if ($driver->isDirty('user_id')) {
+                throw DriverNotEligibleException::cannotChangeUserInService($driver->full_name);
+            }
+
+            if ($driver->isDirty('license_category')) {
+                throw DriverNotEligibleException::cannotChangeLicenseCategoryInService($driver->full_name);
+            }
+        });
+
         static::deleting(function (Driver $driver): void {
             $hasActiveTrips = $driver->trips()
                 ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
@@ -81,6 +104,13 @@ class Driver extends Model
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);
+    }
+
+    public function activeTrip(): HasOne
+    {
+        return $this->hasOne(Trip::class)
+            ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+            ->latestOfMany();
     }
 
     public function fuelLogs(): HasMany
