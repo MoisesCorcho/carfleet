@@ -4,9 +4,16 @@ declare(strict_types=1);
 
 namespace App\Filament\Driver\Resources\Trips;
 
+use App\Actions\Fuel\RegisterFuelLogAction;
 use App\Actions\Trips\RecordTripMileageAction;
+use App\DTOs\Fuel\RegisterFuelLogDTO;
 use App\DTOs\Trips\RecordMileageDTO;
 use App\Enums\Trips\TripStatusEnum;
+use App\Exceptions\Fuel\FuelVehicleMismatchException;
+use App\Exceptions\Fuel\FutureRefuelDateException;
+use App\Exceptions\Fuel\InvalidFuelCostException;
+use App\Exceptions\Fuel\InvalidFuelMileageException;
+use App\Exceptions\Fuel\InvalidFuelQuantityException;
 use App\Exceptions\Trips\DriverAlreadyInTripException;
 use App\Exceptions\Trips\InvalidTripMileageException;
 use App\Exceptions\Trips\InvalidTripStateException;
@@ -290,6 +297,131 @@ class AssignedTripResource extends Resource
                         } catch (TripImmutableException|InvalidTripStateException|InvalidTripMileageException|DriverAlreadyInTripException $e) {
                             Notification::make()
                                 ->title('Error al Iniciar')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
+
+                Action::make('registerFuel')
+                    ->label('REGISTRAR COMBUSTIBLE')
+                    ->icon('heroicon-m-fire')
+                    ->color('warning')
+                    ->button()
+                    ->visible(fn (Trip $record): bool => $record->isInProgress())
+                    ->modalHeading('Registrar Tanqueo de Combustible')
+                    ->modalDescription('Ingresa los datos del abastecimiento realizado durante el servicio y adjunta la foto del voucher.')
+                    ->schema([
+                        DateTimePicker::make('refuel_date')
+                            ->label('Fecha y Hora del Tanqueo')
+                            ->prefixIcon('heroicon-m-calendar')
+                            ->required()
+                            ->maxDate(now())
+                            ->default(now())
+                            ->native(false),
+
+                        TextInput::make('mileage_at_refuel')
+                            ->label('Kilometraje al Tanquear')
+                            ->prefixIcon('heroicon-m-calculator')
+                            ->numeric()
+                            ->required()
+                            ->minValue(fn (Trip $record): int => $record->initial_mileage ?? ($record->vehicle?->current_mileage ?? 0))
+                            ->default(fn (Trip $record): ?int => $record->vehicle?->current_mileage ?? $record->initial_mileage)
+                            ->helperText(fn (Trip $record): string => 'Kilometraje de salida del viaje: '.number_format($record->initial_mileage ?? 0).' km'),
+
+                        TextInput::make('gallons')
+                            ->label('Cantidad de Galones')
+                            ->prefixIcon('heroicon-m-fire')
+                            ->numeric()
+                            ->step(0.01)
+                            ->minValue(0.01)
+                            ->required()
+                            ->suffix('gal')
+                            ->placeholder('Ej: 10.50'),
+
+                        TextInput::make('total_cost')
+                            ->label('Costo Total ($)')
+                            ->prefixIcon('heroicon-m-banknotes')
+                            ->numeric()
+                            ->minValue(1)
+                            ->required()
+                            ->prefix('$')
+                            ->placeholder('Ej: 150000'),
+
+                        TextInput::make('voucher_number')
+                            ->label('Número de Voucher / Factura')
+                            ->prefixIcon('heroicon-m-document-text')
+                            ->maxLength(64)
+                            ->placeholder('Ej: V-123456'),
+
+                        ToggleButtons::make('photo_source')
+                            ->label('Origen de la Foto')
+                            ->options([
+                                'camera' => 'Tomar Foto',
+                                'gallery' => 'Elegir de Galería',
+                            ])
+                            ->icons([
+                                'camera' => 'heroicon-m-camera',
+                                'gallery' => 'heroicon-m-photo',
+                            ])
+                            ->colors([
+                                'camera' => 'primary',
+                                'gallery' => 'gray',
+                            ])
+                            ->default('camera')
+                            ->inline()
+                            ->live()
+                            ->dehydrated(false),
+
+                        FileUpload::make('voucher_photo')
+                            ->label('Foto del Voucher / Recibo')
+                            ->key(fn (Get $get): string => 'voucher_photo_driver_'.($get('photo_source') ?? 'camera'))
+                            ->image()
+                            ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
+                            ->directory('evidences/vouchers')
+                            ->disk('public')
+                            ->imageEditor()
+                            ->maxSize(5120)
+                            ->required()
+                            ->helperText(fn (Get $get): string => ($get('photo_source') ?? 'camera') === 'camera'
+                                ? 'Se abrirá la cámara de tu celular para capturar el comprobante.'
+                                : 'Selecciona una foto clara del comprobante desde tu galería.'),
+
+                        Textarea::make('notes')
+                            ->label('Observaciones / Estación')
+                            ->placeholder('Nombre de la gasolinera, forma de pago...')
+                            ->rows(2),
+                    ])
+                    ->action(function (Trip $record, array $data): void {
+                        try {
+                            app(RegisterFuelLogAction::class)(new RegisterFuelLogDTO(
+                                vehicleId: (int) $record->vehicle_id,
+                                refuelDate: (string) $data['refuel_date'],
+                                mileageAtRefuel: (int) $data['mileage_at_refuel'],
+                                gallons: (float) $data['gallons'],
+                                totalCost: (int) $data['total_cost'],
+                                tripId: $record->id,
+                                driverId: $record->driver_id,
+                                voucherNumber: isset($data['voucher_number']) ? (string) $data['voucher_number'] : null,
+                                voucherPhoto: $data['voucher_photo'] ?? null,
+                                notes: isset($data['notes']) ? (string) $data['notes'] : null,
+                            ));
+
+                            Notification::make()
+                                ->title('Tanqueo Registrado')
+                                ->body("El abastecimiento de combustible para el viaje {$record->code} se registró correctamente.")
+                                ->success()
+                                ->send();
+                        } catch (
+                            InvalidFuelQuantityException|
+                            InvalidFuelCostException|
+                            InvalidFuelMileageException|
+                            FutureRefuelDateException|
+                            FuelVehicleMismatchException|
+                            TripImmutableException $e
+                        ) {
+                            Notification::make()
+                                ->title('Error al Registrar Combustible')
                                 ->body($e->getMessage())
                                 ->danger()
                                 ->send();
