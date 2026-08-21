@@ -4,16 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\Drivers\DocumentTypeEnum;
-use App\Enums\Drivers\DriverStatusEnum;
-use App\Enums\Drivers\LicenseCategoryEnum;
-use App\Enums\Vehicles\FuelTypeEnum;
-use App\Enums\Vehicles\ServiceTypeEnum;
-use App\Enums\Vehicles\VehicleStatusEnum;
-use App\Enums\Vehicles\VehicleTypeEnum;
-use App\Models\Driver;
 use App\Models\User;
-use App\Models\Vehicle;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -24,8 +15,8 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Super Admin User
-        $admin = User::firstOrCreate(
+        // 1. Super Admin Accounts
+        $superAdminTest = User::firstOrCreate(
             ['email' => 'admin@carfleet.test'],
             [
                 'name' => 'Administrador General',
@@ -33,62 +24,71 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
-        $admin->syncRoles(['super_admin']);
+        $superAdminTest->syncRoles(['super_admin']);
 
-        // 2. Driver User & Profile
-        $driverUser = User::firstOrCreate(
-            ['email' => 'driver@carfleet.test'],
+        $superAdminCom = User::firstOrCreate(
+            ['email' => 'admin@carfleet.com'],
             [
-                'name' => 'Conductor de Prueba',
+                'name' => 'Administrador Principal',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
         );
-        $driverUser->syncRoles(['driver']);
+        $superAdminCom->syncRoles(['super_admin']);
 
-        Driver::firstOrCreate(
-            ['user_id' => $driverUser->id],
+        // 2. Dispatcher / Fleet Manager
+        $dispatcher = User::firstOrCreate(
+            ['email' => 'despacho@carfleet.test'],
             [
-                'full_name' => 'Carlos Andrés Rodríguez',
-                'document_type' => DocumentTypeEnum::CC,
-                'document_number' => '1020304050',
-                'phone' => '+57 300 123 4567',
-                'license_number' => 'LIC-10203040',
-                'license_category' => LicenseCategoryEnum::C1,
-                'license_expires_at' => now()->addYears(3)->toDateString(),
-                'status' => DriverStatusEnum::ACTIVO,
+                'name' => 'Coordinador de Despacho',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
             ]
         );
+        $dispatcher->syncRoles(['admin']);
 
-        // 3. Demo Fleet Vehicles
-        Vehicle::firstOrCreate(
-            ['plate_number' => 'ABC-123'],
+        // 3. Driver User Accounts
+        $driverAccounts = [
             [
-                'brand' => 'Toyota',
-                'model' => 'Hilux 4x4',
-                'year' => 2024,
-                'vehicle_type' => VehicleTypeEnum::CAMIONETA,
-                'service_type' => ServiceTypeEnum::PUBLICO,
-                'current_mileage' => 12500,
-                'status' => VehicleStatusEnum::DISPONIBLE,
-                'fuel_type' => FuelTypeEnum::DIESEL,
-                'notes' => 'Camioneta operativa para viajes empresariales.',
-            ]
-        );
+                'email' => 'driver@carfleet.test',
+                'name' => 'Carlos Andrés Rodríguez',
+            ],
+            [
+                'email' => 'driver@carfleet.com',
+                'name' => 'Carlos Andrés Rodríguez (Com)',
+            ],
+            [
+                'email' => 'driver2@carfleet.test',
+                'name' => 'Jorge Eliécer Gaitán',
+            ],
+            [
+                'email' => 'driver3@carfleet.test',
+                'name' => 'María Fernanda Gómez',
+            ],
+            [
+                'email' => 'driver4@carfleet.test',
+                'name' => 'Juan Pablo Montoya',
+            ],
+            [
+                'email' => 'driver5@carfleet.test',
+                'name' => 'Andrés Felipe Arias',
+            ],
+            [
+                'email' => 'driver6@carfleet.test',
+                'name' => 'Ricardo Arjona Morales',
+            ],
+        ];
 
-        Vehicle::firstOrCreate(
-            ['plate_number' => 'XYZ-789'],
-            [
-                'brand' => 'Renault',
-                'model' => 'Master Furgón',
-                'year' => 2023,
-                'vehicle_type' => VehicleTypeEnum::FURGON,
-                'service_type' => ServiceTypeEnum::PUBLICO,
-                'current_mileage' => 28400,
-                'status' => VehicleStatusEnum::DISPONIBLE,
-                'fuel_type' => FuelTypeEnum::DIESEL,
-                'notes' => 'Furgón de carga para logística urbana.',
-            ]
-        );
+        foreach ($driverAccounts as $account) {
+            $user = User::firstOrCreate(
+                ['email' => $account['email']],
+                [
+                    'name' => $account['name'],
+                    'password' => Hash::make('password'),
+                    'email_verified_at' => now(),
+                ]
+            );
+            $user->syncRoles(['driver']);
+        }
     }
 }
