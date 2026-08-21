@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -81,6 +82,13 @@ class Driver extends Model
     public function trips(): HasMany
     {
         return $this->hasMany(Trip::class);
+    }
+
+    public function activeTrip(): HasOne
+    {
+        return $this->hasOne(Trip::class)
+            ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+            ->latestOfMany();
     }
 
     public function fuelLogs(): HasMany
