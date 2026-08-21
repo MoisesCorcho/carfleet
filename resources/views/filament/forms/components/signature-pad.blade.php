@@ -73,24 +73,24 @@
             this.hasSignature = false;
         }
     }"
-    class="w-full flex flex-col gap-2"
+    class="w-full max-w-full overflow-hidden flex flex-col gap-2 box-border"
 >
-    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-        <span class="font-medium text-gray-700 dark:text-gray-300">Lienzo de Firma Digital (Dibuja con el dedo o puntero)</span>
+    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 w-full max-w-full gap-2">
+        <span class="font-medium text-gray-700 dark:text-gray-300 truncate">Lienzo de Firma Digital</span>
         <button
             type="button"
             x-on:click="clearCanvas()"
-            class="text-xs font-semibold text-danger-600 dark:text-danger-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+            class="text-xs font-semibold text-danger-600 dark:text-danger-400 hover:underline inline-flex items-center gap-1 cursor-pointer shrink-0"
         >
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            Limpiar Firma
+            Limpiar
         </button>
     </div>
 
     <div 
-        class="relative w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-500 p-1.5 shadow-sm transition-all focus-within:border-primary-500 ring-1 ring-black/5"
+        class="relative w-full max-w-full overflow-hidden rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-500 p-1 shadow-sm transition-all focus-within:border-primary-500 ring-1 ring-black/5 box-border"
         style="background-color: #ffffff !important;"
     >
         <canvas
@@ -100,16 +100,16 @@
             x-on:pointerup="stopDrawing($event)"
             x-on:pointercancel="stopDrawing($event)"
             x-on:pointerleave="stopDrawing($event)"
-            class="w-full h-48 rounded-lg cursor-crosshair select-none block"
-            style="background-color: #ffffff !important; touch-action: none;"
+            class="w-full max-w-full h-44 rounded-lg cursor-crosshair select-none block"
+            style="background-color: #ffffff !important; touch-action: none; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; display: block;"
         ></canvas>
 
         <div
             x-show="!hasSignature"
             x-transition
-            class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-slate-400 font-medium"
+            class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-slate-400 font-medium px-2 text-center"
         >
-            ✍️ Estampa aquí la firma de conformidad
+            ✍️ Estampa aquí la firma con tu dedo
         </div>
     </div>
 
