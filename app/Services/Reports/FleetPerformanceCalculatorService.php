@@ -30,7 +30,10 @@ class FleetPerformanceCalculatorService
         $tripsQuery = $vehicle->trips()
             ->whereIn('status', [TripStatusEnum::FINALIZADO, TripStatusEnum::CERRADO])
             ->when($startDate, fn ($q) => $q->whereDate('actual_departure_at', '>=', $startDate))
-            ->when($endDate, fn ($q) => $q->whereDate('actual_arrival_at', '<=', $endDate));
+            ->when($endDate, fn ($q) => $q->where(function ($sub) use ($endDate): void {
+                $sub->whereDate('actual_arrival_at', '<=', $endDate)
+                    ->orWhere(fn ($sq) => $sq->whereNull('actual_arrival_at')->whereDate('actual_departure_at', '<=', $endDate));
+            }));
 
         $totalKm = (int) $tripsQuery->sum('distance_traveled');
         $completedTripsCount = (int) $tripsQuery->count();
@@ -63,7 +66,10 @@ class FleetPerformanceCalculatorService
         $tripsQuery = Trip::query()
             ->whereIn('status', [TripStatusEnum::FINALIZADO, TripStatusEnum::CERRADO])
             ->when($startDate, fn ($q) => $q->whereDate('actual_departure_at', '>=', $startDate))
-            ->when($endDate, fn ($q) => $q->whereDate('actual_arrival_at', '<=', $endDate));
+            ->when($endDate, fn ($q) => $q->where(function ($sub) use ($endDate): void {
+                $sub->whereDate('actual_arrival_at', '<=', $endDate)
+                    ->orWhere(fn ($sq) => $sq->whereNull('actual_arrival_at')->whereDate('actual_departure_at', '<=', $endDate));
+            }));
 
         $totalKm = (int) $tripsQuery->sum('distance_traveled');
         $completedTripsCount = (int) $tripsQuery->count();

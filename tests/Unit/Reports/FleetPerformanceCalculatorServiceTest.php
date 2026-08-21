@@ -238,4 +238,27 @@ class FleetPerformanceCalculatorServiceTest extends TestCase
         $this->assertSame(600.0, $metrics->costPerKm); // 600,000 / 1000 = 600.0
         $this->assertSame(2, $metrics->completedTripsCount);
     }
+
+    public function test_it_includes_completed_trips_when_actual_arrival_is_null_but_departure_in_range(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        Trip::factory()->completed()->create([
+            'vehicle_id' => $vehicle->id,
+            'distance_traveled' => 350,
+            'actual_departure_at' => '2026-08-10 08:00:00',
+            'actual_arrival_at' => null,
+        ]);
+
+        FuelLog::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'gallons' => 10.0,
+            'refuel_date' => '2026-08-10 10:00:00',
+        ]);
+
+        $metrics = $this->service->calculateVehiclePerformance($vehicle, '2026-08-01', '2026-08-31');
+
+        $this->assertSame(350, $metrics->totalKm);
+        $this->assertSame(35.0, $metrics->kmPerGallon);
+    }
 }
