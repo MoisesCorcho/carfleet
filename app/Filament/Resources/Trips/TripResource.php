@@ -17,6 +17,7 @@ use App\Filament\Resources\Trips\Pages\EditTrip;
 use App\Filament\Resources\Trips\Pages\ListTrips;
 use App\Filament\Resources\Trips\Pages\ViewTrip;
 use App\Filament\Resources\Trips\RelationManagers\EvidencesRelationManager;
+use App\Filament\Resources\Trips\RelationManagers\FuelLogsRelationManager;
 use App\Models\Driver;
 use App\Models\Requester;
 use App\Models\Trip;
@@ -420,6 +421,7 @@ class TripResource extends Resource
     {
         return [
             EvidencesRelationManager::class,
+            FuelLogsRelationManager::class,
         ];
     }
 

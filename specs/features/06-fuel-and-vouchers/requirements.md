@@ -1,4 +1,4 @@
-> **Estado:** Specs en progreso  
+> **Estado:** Completado  
 > **ID:** F06 · **Slug:** `06-fuel-and-vouchers`  
 > **Prerequisitos:** F01 (`Vehicle`), F04 (`Trip`)
 

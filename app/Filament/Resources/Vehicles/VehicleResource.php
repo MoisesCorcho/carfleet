@@ -14,6 +14,7 @@ use App\Filament\Resources\Vehicles\Pages\CreateVehicle;
 use App\Filament\Resources\Vehicles\Pages\EditVehicle;
 use App\Filament\Resources\Vehicles\Pages\ListVehicles;
 use App\Filament\Resources\Vehicles\Pages\ViewVehicle;
+use App\Filament\Resources\Vehicles\RelationManagers\FuelLogsRelationManager;
 use App\Models\Vehicle;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -359,6 +360,13 @@ class VehicleResource extends Resource
             ->emptyStateDescription('Registra el primer vehículo de la flota para comenzar.')
             ->emptyStateIcon('heroicon-o-truck')
             ->defaultPaginationPageOption(25);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            FuelLogsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
