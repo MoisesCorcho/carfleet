@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Filament\Widgets\ActiveDriversControlWidget;
+use App\Filament\Widgets\DriverLicenseAlertsWidget;
 use App\Filament\Widgets\FleetOverviewWidget;
 use App\Filament\Widgets\FleetStatusDoughnutWidget;
 use App\Filament\Widgets\MonthlyFleetMileageChartWidget;
+use App\Filament\Widgets\TopRequestersChartWidget;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -49,6 +51,8 @@ class AdminPanelProvider extends PanelProvider
                 FleetOverviewWidget::class,
                 FleetStatusDoughnutWidget::class,
                 MonthlyFleetMileageChartWidget::class,
+                DriverLicenseAlertsWidget::class,
+                TopRequestersChartWidget::class,
                 ActiveDriversControlWidget::class,
             ])
             ->middleware([
