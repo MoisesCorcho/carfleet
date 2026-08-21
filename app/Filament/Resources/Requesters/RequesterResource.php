@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Requesters;
 
 use App\Enums\Requesters\RequesterDocumentTypeEnum;
+use App\Enums\Trips\TripStatusEnum;
 use App\Filament\Resources\Requesters\Pages\CreateRequester;
 use App\Filament\Resources\Requesters\Pages\EditRequester;
 use App\Filament\Resources\Requesters\Pages\ListRequesters;
@@ -143,7 +144,10 @@ class RequesterResource extends Resource
                                 Toggle::make('is_active')
                                     ->label('Habilitado para Nuevos Viajes')
                                     ->default(true)
-                                    ->helperText('Si se deshabilita, no aparecerá en la selección al programar nuevos viajes.')
+                                    ->disabled(fn (?Requester $record): bool => $record?->trips()->whereIn('status', [TripStatusEnum::PROGRAMADO, TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists() ?? false)
+                                    ->helperText(fn (?Requester $record): string => $record?->trips()->whereIn('status', [TripStatusEnum::PROGRAMADO, TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists()
+                                        ? '⚠️ Bloqueado: El solicitante tiene viajes programados o en curso.'
+                                        : 'Si se deshabilita, no aparecerá en la selección al programar nuevos viajes.')
                                     ->inline(false),
 
                                 Textarea::make('notes')

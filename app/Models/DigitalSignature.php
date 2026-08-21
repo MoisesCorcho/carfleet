@@ -27,6 +27,15 @@ class DigitalSignature extends Model
 
     protected static function booted(): void
     {
+        static::updating(function (DigitalSignature $signature): void {
+            if ($signature->isImmutable()) {
+                throw TripImmutableException::forTrip(
+                    $signature->trip?->code ?? 'N/A',
+                    $signature->trip?->status ?? TripStatusEnum::CERRADO
+                );
+            }
+        });
+
         static::deleting(function (DigitalSignature $signature): void {
             if ($signature->isImmutable()) {
                 throw TripImmutableException::forTrip(

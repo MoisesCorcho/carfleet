@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Vehicles;
 
 use App\Actions\Vehicles\AdjustVehicleMileageAction;
+use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\FuelTypeEnum;
 use App\Enums\Vehicles\ServiceTypeEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
@@ -94,7 +95,10 @@ class VehicleResource extends Resource
                                     ->unique(ignoreRecord: true)
                                     ->extraInputAttributes(['style' => 'text-transform: uppercase;'])
                                     ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state)))
-                                    ->helperText('Formato alfanumérico oficial del vehículo.'),
+                                    ->disabled(fn (?Vehicle $record): bool => $record?->trips()->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists() ?? false)
+                                    ->helperText(fn (?Vehicle $record): string => $record?->trips()->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists()
+                                        ? '⚠️ Bloqueado: El vehículo tiene un viaje activo o asignado.'
+                                        : 'Formato alfanumérico oficial del vehículo.'),
 
                                 Select::make('service_type')
                                     ->label('Tipo de Servicio')
@@ -104,6 +108,7 @@ class VehicleResource extends Resource
                                     )->all())
                                     ->default(ServiceTypeEnum::PUBLICO->value)
                                     ->required()
+                                    ->disabled(fn (?Vehicle $record): bool => $record?->trips()->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists() ?? false)
                                     ->helperText('Modalidad de servicio asignada al vehículo (Público o Particular).'),
 
                                 Select::make('vehicle_type')
@@ -114,6 +119,7 @@ class VehicleResource extends Resource
                                     )->all())
                                     ->default(VehicleTypeEnum::CAMIONETA->value)
                                     ->required()
+                                    ->disabled(fn (?Vehicle $record): bool => $record?->trips()->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists() ?? false)
                                     ->helperText('Clasificación vehicular de la flota.'),
 
                                 TextInput::make('brand')
@@ -169,7 +175,11 @@ class VehicleResource extends Resource
                                         fn (VehicleStatusEnum $status): array => [$status->value => $status->label()]
                                     )->all())
                                     ->default(VehicleStatusEnum::DISPONIBLE->value)
-                                    ->required(),
+                                    ->required()
+                                    ->disabled(fn (?Vehicle $record): bool => $record?->trips()->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists() ?? false)
+                                    ->helperText(fn (?Vehicle $record): ?string => $record?->trips()->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists()
+                                        ? '⚠️ Bloqueado: El vehículo tiene un viaje activo o asignado.'
+                                        : null),
 
                                 Select::make('fuel_type')
                                     ->label('Tipo de Combustible')

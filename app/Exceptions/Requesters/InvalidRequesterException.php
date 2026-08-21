@@ -12,4 +12,14 @@ class InvalidRequesterException extends DomainException
     {
         return new self("Ya existe un solicitante registrado con el documento {$documentType} {$documentNumber}.");
     }
+
+    public static function cannotDeleteWithActiveTrips(string $name): self
+    {
+        return new self("No se puede eliminar el solicitante {$name} porque tiene servicios programados o en curso.");
+    }
+
+    public static function cannotDeactivateWithActiveTrips(string $name): self
+    {
+        return new self("No se puede desactivar el solicitante {$name} porque tiene servicios programados o en curso.");
+    }
 }

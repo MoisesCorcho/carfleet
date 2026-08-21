@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Requesters\RequesterDocumentTypeEnum;
+use App\Enums\Trips\TripStatusEnum;
+use App\Exceptions\Requesters\InvalidRequesterException;
 use Database\Factories\RequesterFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -33,6 +35,31 @@ class Requester extends Model
 {
     /** @use HasFactory<RequesterFactory> */
     use HasFactory, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::updating(function (Requester $requester): void {
+            if ($requester->isDirty('is_active') && ! $requester->is_active) {
+                $hasActiveTrips = $requester->trips()
+                    ->whereIn('status', [TripStatusEnum::PROGRAMADO, TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+                    ->exists();
+
+                if ($hasActiveTrips) {
+                    throw InvalidRequesterException::cannotDeactivateWithActiveTrips($requester->name);
+                }
+            }
+        });
+
+        static::deleting(function (Requester $requester): void {
+            $hasActiveTrips = $requester->trips()
+                ->whereIn('status', [TripStatusEnum::PROGRAMADO, TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+                ->exists();
+
+            if ($hasActiveTrips) {
+                throw InvalidRequesterException::cannotDeleteWithActiveTrips($requester->name);
+            }
+        });
+    }
 
     protected $fillable = [
         'name',
