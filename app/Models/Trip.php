@@ -195,6 +195,20 @@ class Trip extends Model
         return ! $this->isImmutable() && ! $this->isInProgress() && ! $this->isCompleted();
     }
 
+    public function canBeSigned(): bool
+    {
+        return $this->isCompleted() && ! $this->isImmutable();
+    }
+
+    public function canBeClosed(): bool
+    {
+        return $this->isCompleted()
+            && ! $this->isImmutable()
+            && $this->initial_mileage !== null
+            && $this->final_mileage !== null
+            && $this->signature !== null;
+    }
+
     /**
      * @param  Builder<Trip>  $query
      * @return Builder<Trip>

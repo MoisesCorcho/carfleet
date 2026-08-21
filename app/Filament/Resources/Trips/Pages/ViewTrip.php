@@ -6,9 +6,13 @@ namespace App\Filament\Resources\Trips\Pages;
 
 use App\Actions\Trips\AssignTripResourcesAction;
 use App\Actions\Trips\CancelTripAction;
+use App\Actions\Trips\CloseTripAction;
 use App\Exceptions\Trips\DriverNotEligibleException;
+use App\Exceptions\Trips\InvalidTripMileageException;
 use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
+use App\Exceptions\Trips\TripMissingEvidenceException;
+use App\Exceptions\Trips\TripMissingSignatureException;
 use App\Exceptions\Trips\VehicleNotAvailableException;
 use App\Filament\Resources\Trips\TripResource;
 use App\Models\Driver;
@@ -119,6 +123,39 @@ class ViewTrip extends ViewRecord
                     } catch (TripImmutableException|InvalidTripStateException $e) {
                         Notification::make()
                             ->title('Error al Cancelar')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
+            Action::make('closeTrip')
+                ->label('Cerrar Viaje')
+                ->icon('heroicon-m-lock-closed')
+                ->color('success')
+                ->visible(fn (): bool => $this->getRecord()->canBeClosed())
+                ->requiresConfirmation()
+                ->modalHeading('Cierre Formal del Servicio')
+                ->modalDescription('¿Confirmas el cierre formal del viaje? Esta acción es definitiva, el registro quedará inmutable y el vehículo pasará a estado disponible.')
+                ->modalSubmitActionLabel('Confirmar Cierre')
+                ->action(function (): void {
+                    /** @var Trip $record */
+                    $record = $this->getRecord();
+
+                    try {
+                        app(CloseTripAction::class)($record);
+
+                        Notification::make()
+                            ->title('Viaje Cerrado')
+                            ->body("El viaje {$record->code} ha sido cerrado formalmente.")
+                            ->success()
+                            ->send();
+
+                        $record->refresh();
+                        $this->refreshFormData(['status']);
+                    } catch (TripImmutableException|InvalidTripStateException|InvalidTripMileageException|TripMissingEvidenceException|TripMissingSignatureException $e) {
+                        Notification::make()
+                            ->title('Error al Cerrar Viaje')
                             ->body($e->getMessage())
                             ->danger()
                             ->send();
