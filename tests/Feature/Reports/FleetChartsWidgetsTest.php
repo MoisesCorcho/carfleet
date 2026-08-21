@@ -42,8 +42,12 @@ class FleetChartsWidgetsTest extends TestCase
         Vehicle::factory()->create(['status' => VehicleStatusEnum::EN_VIAJE]);
         Vehicle::factory()->create(['status' => VehicleStatusEnum::MANTENIMIENTO]);
 
-        Livewire::test(FleetStatusDoughnutWidget::class)
+        $test = Livewire::test(FleetStatusDoughnutWidget::class)
             ->assertSuccessful();
+
+        $data = (new \ReflectionMethod($test->instance(), 'getData'))->invoke($test->instance());
+
+        $this->assertSame([2, 0, 1, 1, 0], $data['datasets'][0]['data']);
     }
 
     public function test_monthly_fleet_mileage_chart_widget_aggregates_kms_per_month(): void
@@ -76,8 +80,17 @@ class FleetChartsWidgetsTest extends TestCase
             'actual_arrival_at' => '2026-07-15 14:00:00',
         ]);
 
-        Livewire::test(MonthlyFleetMileageChartWidget::class)
+        $test = Livewire::test(MonthlyFleetMileageChartWidget::class, ['filter' => '6_months'])
             ->assertSuccessful();
+
+        $data = (new \ReflectionMethod($test->instance(), 'getData'))->invoke($test->instance());
+
+        // Array has 6 months. Last month is August (700 km), previous month is July (500 km)
+        $datasetData = $data['datasets'][0]['data'];
+        $this->assertCount(6, $datasetData);
+        $this->assertSame(700, $datasetData[5]);
+        $this->assertSame(500, $datasetData[4]);
+        $this->assertSame(0, $datasetData[0]);
 
         Carbon::setTestNow();
     }

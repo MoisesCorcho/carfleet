@@ -60,6 +60,7 @@ class TopRequestersChartWidget extends ChartWidget
                     default => null,
                 };
             }])
+            ->having('trips_count', '>', 0)
             ->orderByDesc('trips_count')
             ->limit(5)
             ->get();

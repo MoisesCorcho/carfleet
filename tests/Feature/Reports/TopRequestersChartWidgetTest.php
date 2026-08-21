@@ -71,13 +71,21 @@ class TopRequestersChartWidgetTest extends TestCase
             'actual_departure_at' => '2026-07-10 08:00:00',
         ]);
 
-        // Default 'month' filter: should only include August
-        Livewire::test(TopRequestersChartWidget::class, ['filter' => 'month'])
+        $testMonth = Livewire::test(TopRequestersChartWidget::class, ['filter' => 'month'])
             ->assertSuccessful();
 
+        $dataMonth = (new \ReflectionMethod($testMonth->instance(), 'getData'))->invoke($testMonth->instance());
+        $this->assertSame(['Cliente Agosto'], $dataMonth['labels']);
+        $this->assertSame([1], $dataMonth['datasets'][0]['data']);
+
         // Switch to 'all'
-        Livewire::test(TopRequestersChartWidget::class, ['filter' => 'all'])
+        $testAll = Livewire::test(TopRequestersChartWidget::class, ['filter' => 'all'])
             ->assertSuccessful();
+
+        $dataAll = (new \ReflectionMethod($testAll->instance(), 'getData'))->invoke($testAll->instance());
+        $this->assertCount(2, $dataAll['labels']);
+        $this->assertContains('Cliente Agosto', $dataAll['labels']);
+        $this->assertContains('Cliente Julio', $dataAll['labels']);
 
         Carbon::setTestNow();
     }
