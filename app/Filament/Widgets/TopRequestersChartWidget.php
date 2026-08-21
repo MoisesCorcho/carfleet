@@ -7,6 +7,7 @@ namespace App\Filament\Widgets;
 use App\Enums\Trips\TripStatusEnum;
 use App\Models\Requester;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Database\Eloquent\Builder;
 use Override;
 
 class TopRequestersChartWidget extends ChartWidget
@@ -21,6 +22,19 @@ class TopRequestersChartWidget extends ChartWidget
 
     protected ?string $pollingInterval = '60s';
 
+    public ?string $filter = 'month';
+
+    #[Override]
+    protected function getFilters(): ?array
+    {
+        return [
+            'month' => 'Este Mes',
+            'last_30_days' => 'Últimos 30 días',
+            'year' => 'Este Año',
+            'all' => 'Histórico Total',
+        ];
+    }
+
     #[Override]
     protected function getType(): string
     {
@@ -30,8 +44,22 @@ class TopRequestersChartWidget extends ChartWidget
     #[Override]
     protected function getData(): array
     {
+        $activeFilter = $this->filter;
+
         $topRequesters = Requester::query()
-            ->withCount(['trips' => fn ($q) => $q->whereIn('status', [TripStatusEnum::FINALIZADO, TripStatusEnum::CERRADO])])
+            ->withCount(['trips' => function (Builder $q) use ($activeFilter): void {
+                $q->whereIn('status', [TripStatusEnum::FINALIZADO, TripStatusEnum::CERRADO]);
+
+                match ($activeFilter) {
+                    'month' => $q->where(function (Builder $sub): void {
+                        $sub->whereMonth('actual_departure_at', now()->month)
+                            ->whereYear('actual_departure_at', now()->year);
+                    }),
+                    'last_30_days' => $q->whereDate('actual_departure_at', '>=', now()->subDays(30)),
+                    'year' => $q->whereYear('actual_departure_at', now()->year),
+                    default => null,
+                };
+            }])
             ->orderByDesc('trips_count')
             ->limit(5)
             ->get();

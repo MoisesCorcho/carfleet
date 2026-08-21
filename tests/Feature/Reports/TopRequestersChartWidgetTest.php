@@ -11,6 +11,7 @@ use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -47,6 +48,38 @@ class TopRequestersChartWidgetTest extends TestCase
 
         Livewire::test(TopRequestersChartWidget::class)
             ->assertSuccessful();
+    }
+
+    public function test_top_requesters_chart_widget_filters_by_selected_time_period(): void
+    {
+        Carbon::setTestNow('2026-08-21 12:00:00');
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($this->adminUser);
+
+        $clientAugust = Requester::factory()->create(['name' => 'Cliente Agosto']);
+        $clientJuly = Requester::factory()->create(['name' => 'Cliente Julio']);
+
+        // Trip in August
+        Trip::factory()->closed()->create([
+            'requester_id' => $clientAugust->id,
+            'actual_departure_at' => '2026-08-10 08:00:00',
+        ]);
+
+        // Trip in July
+        Trip::factory()->closed()->create([
+            'requester_id' => $clientJuly->id,
+            'actual_departure_at' => '2026-07-10 08:00:00',
+        ]);
+
+        // Default 'month' filter: should only include August
+        Livewire::test(TopRequestersChartWidget::class, ['filter' => 'month'])
+            ->assertSuccessful();
+
+        // Switch to 'all'
+        Livewire::test(TopRequestersChartWidget::class, ['filter' => 'all'])
+            ->assertSuccessful();
+
+        Carbon::setTestNow();
     }
 
     public function test_top_requesters_chart_widget_handles_empty_database(): void
