@@ -15,12 +15,9 @@ use Override;
 
 class DriverLicenseAlertsWidget extends BaseWidget
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 6;
 
-    protected int|string|array $columnSpan = [
-        'md' => 1,
-        'xl' => 1,
-    ];
+    protected int|string|array $columnSpan = 'full';
 
     #[Override]
     public function table(Table $table): Table
@@ -39,8 +36,12 @@ class DriverLicenseAlertsWidget extends BaseWidget
                 TextColumn::make('full_name')
                     ->label('Conductor')
                     ->weight(FontWeight::Bold)
-                    ->description(fn (Driver $record): string => $record->phone ? "Tel: {$record->phone}" : "Doc: {$record->formattedDocument()}")
+                    ->description(fn (Driver $record): string => $record->phone ? "Tel: {$record->phone}" : "Lic: {$record->license_number}")
                     ->searchable(),
+
+                TextColumn::make('document_number')
+                    ->label('Documento')
+                    ->formatStateUsing(fn (Driver $record): string => $record->formattedDocument()),
 
                 TextColumn::make('license_number')
                     ->label('Licencia')
@@ -74,6 +75,12 @@ class DriverLicenseAlertsWidget extends BaseWidget
                         return $days <= 7 ? 'danger' : 'warning';
                     })
                     ->sortable(),
+
+                TextColumn::make('status')
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (Driver $record): string => $record->isActive() ? 'success' : 'gray')
+                    ->formatStateUsing(fn (Driver $record): string => $record->status->label()),
             ])
             ->recordActions([
                 Action::make('editDriver')

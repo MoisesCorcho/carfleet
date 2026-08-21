@@ -13,12 +13,9 @@ class TopRequestersChartWidget extends ChartWidget
 {
     protected ?string $heading = 'Top Solicitantes por Viajes';
 
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 4;
 
-    protected int|string|array $columnSpan = [
-        'md' => 1,
-        'xl' => 1,
-    ];
+    protected int|string|array $columnSpan = 'full';
 
     protected ?string $maxHeight = '280px';
 
