@@ -138,8 +138,14 @@ class TripsRelationManager extends RelationManager
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
-                            ->when($data['from'], fn (Builder $q, $date): Builder => $q->whereDate('scheduled_departure_at', '>=', $date))
-                            ->when($data['until'], fn (Builder $q, $date): Builder => $q->whereDate('scheduled_departure_at', '<=', $date));
+                            ->when($data['from'], fn (Builder $q, $date): Builder => $q->where(function (Builder $sub) use ($date): void {
+                                $sub->whereDate('actual_departure_at', '>=', $date)
+                                    ->orWhere(fn (Builder $sq) => $sq->whereNull('actual_departure_at')->whereDate('scheduled_departure_at', '>=', $date));
+                            }))
+                            ->when($data['until'], fn (Builder $q, $date): Builder => $q->where(function (Builder $sub) use ($date): void {
+                                $sub->whereDate('actual_departure_at', '<=', $date)
+                                    ->orWhere(fn (Builder $sq) => $sq->whereNull('actual_departure_at')->whereDate('scheduled_departure_at', '<=', $date));
+                            }));
                     }),
             ])
             ->recordActions([

@@ -84,6 +84,7 @@ class VehicleTripHistoryTest extends TestCase
             'code' => 'TRIP-ALFA',
             'vehicle_id' => $vehicle->id,
             'driver_id' => $driverA->id,
+            'scheduled_departure_at' => '2026-08-01 08:00:00',
             'actual_departure_at' => '2026-08-01 08:00:00',
         ]);
 
@@ -91,6 +92,7 @@ class VehicleTripHistoryTest extends TestCase
             'code' => 'TRIP-BETA',
             'vehicle_id' => $vehicle->id,
             'driver_id' => $driverB->id,
+            'scheduled_departure_at' => '2026-08-15 08:00:00',
             'actual_departure_at' => '2026-08-15 08:00:00',
         ]);
 
@@ -102,6 +104,18 @@ class VehicleTripHistoryTest extends TestCase
             ->filterTable('driver_id', $driverA->id)
             ->assertCanSeeTableRecords([$tripA])
             ->assertCanNotSeeTableRecords([$tripB]);
+
+        // Filter by Date Range (only Trip B in range)
+        Livewire::test(TripsRelationManager::class, [
+            'ownerRecord' => $vehicle,
+            'pageClass' => ViewVehicle::class,
+        ])
+            ->filterTable('date_range', [
+                'from' => '2026-08-10',
+                'until' => '2026-08-20',
+            ])
+            ->assertCanSeeTableRecords([$tripB])
+            ->assertCanNotSeeTableRecords([$tripA]);
     }
 
     public function test_trips_relation_manager_is_read_only_to_prevent_domain_bypass(): void
