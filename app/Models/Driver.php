@@ -41,6 +41,28 @@ class Driver extends Model
 
     protected static function booted(): void
     {
+        static::updating(function (Driver $driver): void {
+            $hasActiveTrips = $driver->trips()
+                ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+                ->exists();
+
+            if (! $hasActiveTrips) {
+                return;
+            }
+
+            if ($driver->isDirty('status') && $driver->status !== DriverStatusEnum::ACTIVO) {
+                throw DriverNotEligibleException::cannotDeactivateInService($driver->full_name);
+            }
+
+            if ($driver->isDirty('user_id')) {
+                throw DriverNotEligibleException::cannotChangeUserInService($driver->full_name);
+            }
+
+            if ($driver->isDirty('license_category')) {
+                throw DriverNotEligibleException::cannotChangeLicenseCategoryInService($driver->full_name);
+            }
+        });
+
         static::deleting(function (Driver $driver): void {
             $hasActiveTrips = $driver->trips()
                 ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
