@@ -41,9 +41,12 @@ class RoleSeeder extends Seeder
             }
         }
 
-        // 3. Sync all permissions to super_admin and admin
-        $allPermissions = Permission::all();
-        $superAdminRole->syncPermissions($allPermissions);
-        $adminRole->syncPermissions($allPermissions);
+        // 3. Permissions assignment
+        // Super Admin receives all permissions (including security and roles)
+        $superAdminRole->syncPermissions(Permission::all());
+
+        // Admin (Fleet Dispatcher / Manager) receives only operational domain permissions
+        $operationalPermissions = Permission::where('name', 'not like', '%:Role')->get();
+        $adminRole->syncPermissions($operationalPermissions);
     }
 }
