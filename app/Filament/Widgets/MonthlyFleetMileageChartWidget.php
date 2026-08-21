@@ -25,6 +25,18 @@ class MonthlyFleetMileageChartWidget extends ChartWidget
 
     protected ?string $pollingInterval = '60s';
 
+    public ?string $filter = '6_months';
+
+    #[Override]
+    protected function getFilters(): ?array
+    {
+        return [
+            '6_months' => 'Últimos 6 Meses',
+            '12_months' => 'Últimos 12 Meses',
+            'this_year' => 'Este Año',
+        ];
+    }
+
     #[Override]
     protected function getType(): string
     {
@@ -37,7 +49,13 @@ class MonthlyFleetMileageChartWidget extends ChartWidget
         $months = [];
         $data = [];
 
-        for ($i = 5; $i >= 0; $i--) {
+        $monthsCount = match ($this->filter) {
+            '12_months' => 12,
+            'this_year' => (int) Carbon::now()->month,
+            default => 6,
+        };
+
+        for ($i = $monthsCount - 1; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
             $startOfMonth = $date->copy()->startOfMonth()->toDateTimeString();
             $endOfMonth = $date->copy()->endOfMonth()->toDateTimeString();

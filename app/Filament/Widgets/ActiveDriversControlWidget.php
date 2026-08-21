@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
+use App\Enums\Drivers\DriverStatusEnum;
+use App\Enums\Trips\TripStatusEnum;
 use App\Filament\Resources\Trips\TripResource;
 use App\Models\Driver;
 use Filament\Actions\Action;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Illuminate\Database\Eloquent\Builder;
 use Override;
 
 class ActiveDriversControlWidget extends BaseWidget
@@ -140,6 +144,38 @@ class ActiveDriversControlWidget extends BaseWidget
                     ->color('info')
                     ->visible(fn (Driver $record): bool => $record->activeTrip !== null)
                     ->url(fn (Driver $record): ?string => $record->activeTrip ? TripResource::getUrl('view', ['record' => $record->activeTrip]) : null),
+            ])
+            ->filters([
+                SelectFilter::make('operational_state')
+                    ->label('Estado Operacional')
+                    ->options([
+                        'en_viaje' => 'En Viaje',
+                        'disponible' => 'Disponible',
+                        'asignado' => 'Asignado',
+                        'licencia_vencida' => 'Licencia Vencida',
+                        'inactivo' => 'Inactivo',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? null;
+                        if (! $value) {
+                            return $query;
+                        }
+
+                        return match ($value) {
+                            'en_viaje' => $query->whereHas('trips', fn ($q) => $q->where('status', TripStatusEnum::EN_CURSO)),
+                            'asignado' => $query->whereHas('trips', fn ($q) => $q->where('status', TripStatusEnum::ASIGNADO)),
+                            'disponible' => $query->where('status', DriverStatusEnum::ACTIVO)
+                                ->where(function (Builder $q): void {
+                                    $q->whereNull('license_expires_at')
+                                        ->orWhereDate('license_expires_at', '>=', now()->toDateString());
+                                })
+                                ->whereDoesntHave('trips', fn ($q) => $q->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])),
+                            'licencia_vencida' => $query->whereNotNull('license_expires_at')
+                                ->whereDate('license_expires_at', '<', now()->toDateString()),
+                            'inactivo' => $query->where('status', DriverStatusEnum::INACTIVO),
+                            default => $query,
+                        };
+                    }),
             ])
             ->defaultPaginationPageOption(10)
             ->emptyStateHeading('No hay conductores registrados')

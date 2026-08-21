@@ -82,6 +82,27 @@ class FleetChartsWidgetsTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_monthly_fleet_mileage_chart_widget_filters_by_period(): void
+    {
+        Carbon::setTestNow('2026-08-21 12:00:00');
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($this->adminUser);
+
+        // Test with '6_months'
+        Livewire::test(MonthlyFleetMileageChartWidget::class, ['filter' => '6_months'])
+            ->assertSuccessful();
+
+        // Test with '12_months'
+        Livewire::test(MonthlyFleetMileageChartWidget::class, ['filter' => '12_months'])
+            ->assertSuccessful();
+
+        // Test with 'this_year'
+        Livewire::test(MonthlyFleetMileageChartWidget::class, ['filter' => 'this_year'])
+            ->assertSuccessful();
+
+        Carbon::setTestNow();
+    }
+
     public function test_charts_widgets_handle_empty_database_gracefully(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));

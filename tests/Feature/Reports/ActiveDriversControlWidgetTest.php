@@ -97,4 +97,27 @@ class ActiveDriversControlWidgetTest extends TestCase
             ->assertSee('Chofer Vencido')
             ->assertSee('Licencia Vencida');
     }
+
+    public function test_active_drivers_control_widget_filters_by_operational_state(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($this->adminUser);
+
+        $driverInTrip = Driver::factory()->active()->create(['full_name' => 'Conductor Viajando']);
+        Trip::factory()->inProgress()->create(['driver_id' => $driverInTrip->id]);
+
+        $driverAvailable = Driver::factory()->active()->create(['full_name' => 'Conductor En Base']);
+
+        // Filter 'en_viaje'
+        Livewire::test(ActiveDriversControlWidget::class)
+            ->filterTable('operational_state', 'en_viaje')
+            ->assertCanSeeTableRecords([$driverInTrip])
+            ->assertCanNotSeeTableRecords([$driverAvailable]);
+
+        // Filter 'disponible'
+        Livewire::test(ActiveDriversControlWidget::class)
+            ->filterTable('operational_state', 'disponible')
+            ->assertCanSeeTableRecords([$driverAvailable])
+            ->assertCanNotSeeTableRecords([$driverInTrip]);
+    }
 }
