@@ -18,9 +18,11 @@ use App\Exceptions\Trips\InvalidTripDatesException;
 use App\Exceptions\Trips\InvalidTripStateException;
 use App\Exceptions\Trips\TripImmutableException;
 use App\Exceptions\Trips\VehicleNotAvailableException;
+use App\Models\DigitalSignature;
 use App\Models\Driver;
 use App\Models\Requester;
 use App\Models\Trip;
+use App\Models\TripEvidence;
 use App\Models\User;
 use App\Models\Vehicle;
 use Database\Seeders\RoleSeeder;
@@ -180,4 +182,61 @@ test('cannot create trip with partial resource assignment (vehicle without drive
 
     expect(fn () => app(CreateTripAction::class)($dtoDriverOnly))
         ->toThrow(IncompleteTripResourcesException::class);
+});
+
+test('cannot reassign resources to an in progress or completed trip (invariants)', function () {
+    $vehicle1 = Vehicle::factory()->available()->create();
+    $vehicle2 = Vehicle::factory()->available()->create();
+    $driver1 = Driver::factory()->active()->create();
+    $driver2 = Driver::factory()->active()->create();
+
+    $inProgressTrip = Trip::factory()->inProgress()->create([
+        'vehicle_id' => $vehicle1->id,
+        'driver_id' => $driver1->id,
+    ]);
+
+    expect(fn () => app(AssignTripResourcesAction::class)($inProgressTrip, $vehicle2->id, $driver2->id))
+        ->toThrow(InvalidTripStateException::class);
+
+    $completedTrip = Trip::factory()->completed()->create([
+        'vehicle_id' => $vehicle1->id,
+        'driver_id' => $driver1->id,
+    ]);
+
+    expect(fn () => app(AssignTripResourcesAction::class)($completedTrip, $vehicle2->id, $driver2->id))
+        ->toThrow(InvalidTripStateException::class);
+});
+
+test('cannot delete a trip that is in progress, completed or closed (invariants)', function () {
+    $inProgressTrip = Trip::factory()->inProgress()->create();
+    expect(fn () => $inProgressTrip->delete())->toThrow(InvalidTripStateException::class);
+
+    $completedTrip = Trip::factory()->completed()->create();
+    expect(fn () => $completedTrip->delete())->toThrow(InvalidTripStateException::class);
+
+    $closedTrip = Trip::factory()->closed()->create();
+    expect(fn () => $closedTrip->delete())->toThrow(InvalidTripStateException::class);
+});
+
+test('cannot delete trip evidence or digital signature from closed trip (inherited immutability)', function () {
+    $closedTrip = Trip::factory()->closed()->create();
+
+    $evidence = TripEvidence::factory()->create([
+        'trip_id' => $closedTrip->id,
+    ]);
+    expect(fn () => $evidence->delete())->toThrow(TripImmutableException::class);
+
+    $signature = DigitalSignature::factory()->create([
+        'trip_id' => $closedTrip->id,
+    ]);
+    expect(fn () => $signature->delete())->toThrow(TripImmutableException::class);
+});
+
+test('cannot delete driver with active trips in progress or assigned (invariants)', function () {
+    $driver = Driver::factory()->active()->create();
+    $trip = Trip::factory()->inProgress()->create([
+        'driver_id' => $driver->id,
+    ]);
+
+    expect(fn () => $driver->delete())->toThrow(DriverNotEligibleException::class);
 });

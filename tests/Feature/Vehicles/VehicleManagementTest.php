@@ -2,15 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Actions\Vehicles\AdjustVehicleMileageAction;
 use App\Actions\Vehicles\RegisterVehicleAction;
 use App\DTOs\Vehicles\UpsertVehicleDTO;
 use App\Enums\Vehicles\FuelTypeEnum;
 use App\Enums\Vehicles\ServiceTypeEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
 use App\Enums\Vehicles\VehicleTypeEnum;
+use App\Exceptions\Trips\VehicleNotAvailableException;
+use App\Exceptions\Vehicles\InvalidMileageException;
 use App\Filament\Resources\Vehicles\Pages\CreateVehicle;
 use App\Filament\Resources\Vehicles\Pages\EditVehicle;
 use App\Filament\Resources\Vehicles\Pages\ListVehicles;
+use App\Models\Trip;
 use App\Models\User;
 use App\Models\Vehicle;
 use Database\Seeders\RoleSeeder;
@@ -244,4 +248,22 @@ test('accepts lowercase plate format in form and stores it in uppercase', functi
     $this->assertDatabaseHas('vehicles', [
         'plate_number' => 'FLT-200',
     ]);
+});
+
+test('cannot manually adjust mileage of a vehicle currently in trip (invariants)', function () {
+    $vehicle = Vehicle::factory()->inTrip()->create([
+        'current_mileage' => 10000,
+    ]);
+
+    expect(fn () => app(AdjustVehicleMileageAction::class)($vehicle, 10500, 'Ajuste no permitido'))
+        ->toThrow(InvalidMileageException::class);
+});
+
+test('cannot delete vehicle with active trips in progress or assigned (invariants)', function () {
+    $vehicle = Vehicle::factory()->inTrip()->create();
+    $trip = Trip::factory()->inProgress()->create([
+        'vehicle_id' => $vehicle->id,
+    ]);
+
+    expect(fn () => $vehicle->delete())->toThrow(VehicleNotAvailableException::class);
 });

@@ -7,6 +7,8 @@ namespace App\Models;
 use App\Enums\Drivers\DocumentTypeEnum;
 use App\Enums\Drivers\DriverStatusEnum;
 use App\Enums\Drivers\LicenseCategoryEnum;
+use App\Enums\Trips\TripStatusEnum;
+use App\Exceptions\Trips\DriverNotEligibleException;
 use Database\Factories\DriverFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,6 +37,19 @@ class Driver extends Model
 {
     /** @use HasFactory<DriverFactory> */
     use HasFactory, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Driver $driver): void {
+            $hasActiveTrips = $driver->trips()
+                ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+                ->exists();
+
+            if ($hasActiveTrips) {
+                throw DriverNotEligibleException::cannotDeleteInService($driver->full_name);
+            }
+        });
+    }
 
     protected $fillable = [
         'user_id',

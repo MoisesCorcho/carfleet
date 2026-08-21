@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Vehicles;
 
+use App\Enums\Vehicles\VehicleStatusEnum;
 use App\Exceptions\Vehicles\InvalidMileageException;
 use App\Models\Vehicle;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,10 @@ class AdjustVehicleMileageAction
      */
     public function __invoke(Vehicle $vehicle, int $newMileage, string $reason): Vehicle
     {
+        if ($vehicle->status === VehicleStatusEnum::EN_VIAJE) {
+            throw InvalidMileageException::cannotAdjustInTrip($vehicle->plate_number);
+        }
+
         if ($newMileage < 0) {
             throw InvalidMileageException::negativeMileage($newMileage);
         }

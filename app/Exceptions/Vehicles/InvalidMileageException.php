@@ -17,4 +17,9 @@ class InvalidMileageException extends DomainException
     {
         return new self("El nuevo kilometraje ({$newMileage} km) no puede ser menor al kilometraje actual registrado ({$currentMileage} km).");
     }
+
+    public static function cannotAdjustInTrip(string $plateNumber): self
+    {
+        return new self("No se puede ajustar el odómetro del vehículo {$plateNumber} mientras se encuentra en servicio activo.");
+    }
 }

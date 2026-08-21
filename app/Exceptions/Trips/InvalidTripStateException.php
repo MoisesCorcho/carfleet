@@ -33,4 +33,14 @@ class InvalidTripStateException extends DomainException
     {
         return new self("No se puede cerrar el viaje {$code} porque su estado actual es '{$status->label()}' (Se requiere estado 'Finalizado').");
     }
+
+    public static function cannotReassign(string $code, TripStatusEnum $status): self
+    {
+        return new self("No se pueden reasignar recursos al viaje {$code} porque su estado actual es '{$status->label()}' (Se requiere estado 'Programado' o 'Asignado').");
+    }
+
+    public static function cannotDelete(string $code, TripStatusEnum $status): self
+    {
+        return new self("No se puede eliminar el viaje {$code} porque su estado actual es '{$status->label()}'.");
+    }
 }

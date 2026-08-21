@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\FuelTypeEnum;
 use App\Enums\Vehicles\ServiceTypeEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
 use App\Enums\Vehicles\VehicleTypeEnum;
+use App\Exceptions\Trips\VehicleNotAvailableException;
 use Database\Factories\VehicleFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,6 +38,23 @@ class Vehicle extends Model
 {
     /** @use HasFactory<VehicleFactory> */
     use HasFactory, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Vehicle $vehicle): void {
+            if ($vehicle->status === VehicleStatusEnum::EN_VIAJE || $vehicle->status === VehicleStatusEnum::ASIGNADO) {
+                throw VehicleNotAvailableException::cannotDeleteInService($vehicle->plate_number, $vehicle->status);
+            }
+
+            $hasActiveTrips = $vehicle->trips()
+                ->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])
+                ->exists();
+
+            if ($hasActiveTrips) {
+                throw VehicleNotAvailableException::cannotDeleteInService($vehicle->plate_number, $vehicle->status);
+            }
+        });
+    }
 
     protected $fillable = [
         'plate_number',
