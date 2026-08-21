@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\Trips\TripStatusEnum;
+use App\Exceptions\Trips\TripImmutableException;
 use Database\Factories\FuelLogFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,10 +36,22 @@ class FuelLog extends Model
     protected static function booted(): void
     {
         static::deleting(function (FuelLog $fuelLog): void {
+            if ($fuelLog->isImmutable()) {
+                throw TripImmutableException::forTrip(
+                    $fuelLog->trip?->code ?? 'N/A',
+                    $fuelLog->trip?->status ?? TripStatusEnum::CERRADO
+                );
+            }
+
             if ($fuelLog->voucher_photo_path && Storage::disk('public')->exists($fuelLog->voucher_photo_path)) {
                 Storage::disk('public')->delete($fuelLog->voucher_photo_path);
             }
         });
+    }
+
+    public function isImmutable(): bool
+    {
+        return $this->trip?->isImmutable() ?? false;
     }
 
     protected $fillable = [

@@ -9,6 +9,7 @@ use App\DTOs\Fuel\RegisterFuelLogDTO;
 use App\Exceptions\Fuel\FuelVehicleMismatchException;
 use App\Exceptions\Fuel\FutureRefuelDateException;
 use App\Exceptions\Fuel\InvalidFuelCostException;
+use App\Exceptions\Fuel\InvalidFuelDateException;
 use App\Exceptions\Fuel\InvalidFuelMileageException;
 use App\Exceptions\Fuel\InvalidFuelQuantityException;
 use App\Exceptions\Trips\TripImmutableException;
@@ -34,6 +35,7 @@ class CreateFuelLog extends CreateRecord
             InvalidFuelQuantityException|
             InvalidFuelCostException|
             InvalidFuelMileageException|
+            InvalidFuelDateException|
             FutureRefuelDateException|
             FuelVehicleMismatchException|
             TripImmutableException $e

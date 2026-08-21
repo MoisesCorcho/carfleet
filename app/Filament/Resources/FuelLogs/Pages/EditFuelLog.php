@@ -4,10 +4,23 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\FuelLogs\Pages;
 
+use App\Actions\Fuel\UpdateFuelLogAction;
+use App\DTOs\Fuel\UpdateFuelLogDTO;
+use App\Exceptions\Fuel\FuelVehicleMismatchException;
+use App\Exceptions\Fuel\FutureRefuelDateException;
+use App\Exceptions\Fuel\InvalidFuelCostException;
+use App\Exceptions\Fuel\InvalidFuelDateException;
+use App\Exceptions\Fuel\InvalidFuelMileageException;
+use App\Exceptions\Fuel\InvalidFuelQuantityException;
+use App\Exceptions\Trips\TripImmutableException;
 use App\Filament\Resources\FuelLogs\FuelLogResource;
+use App\Models\FuelLog;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
+use Override;
 
 class EditFuelLog extends EditRecord
 {
@@ -17,8 +30,36 @@ class EditFuelLog extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->visible(fn (FuelLog $record): bool => ! $record->isImmutable()),
         ];
+    }
+
+    #[Override]
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $dto = UpdateFuelLogDTO::fromArray($record->id, $data);
+        $action = app(UpdateFuelLogAction::class);
+
+        try {
+            return $action($dto);
+        } catch (
+            InvalidFuelQuantityException|
+            InvalidFuelCostException|
+            InvalidFuelMileageException|
+            InvalidFuelDateException|
+            FutureRefuelDateException|
+            FuelVehicleMismatchException|
+            TripImmutableException $e
+        ) {
+            Notification::make()
+                ->title('Error al Actualizar Tanqueo')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            $this->halt();
+        }
     }
 
     protected function getRedirectUrl(): string
