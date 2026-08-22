@@ -9,6 +9,7 @@ use App\Filament\Widgets\DriverLicenseAlertsWidget;
 use App\Filament\Widgets\FleetOverviewWidget;
 use App\Filament\Widgets\FleetStatusDoughnutWidget;
 use App\Filament\Widgets\MonthlyFleetMileageChartWidget;
+use App\Filament\Widgets\OnboardingQuickStartWidget;
 use App\Filament\Widgets\TopRequestersChartWidget;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
@@ -34,6 +35,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             ->colors([
                 'primary' => Color::Amber,
@@ -48,6 +50,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                OnboardingQuickStartWidget::class,
                 FleetOverviewWidget::class,
                 FleetStatusDoughnutWidget::class,
                 MonthlyFleetMileageChartWidget::class,

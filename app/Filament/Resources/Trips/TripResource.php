@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Trips;
 
+use App\Actions\Invoices\GenerateInvoiceAction;
 use App\Actions\Trips\AssignTripResourcesAction;
 use App\Actions\Trips\CancelTripAction;
 use App\Actions\Trips\CloseTripAction;
+use App\DTOs\Invoices\GenerateInvoiceDTO;
 use App\Enums\Trips\TripStatusEnum;
 use App\Exceptions\Trips\DriverNotEligibleException;
 use App\Exceptions\Trips\DriverScheduleConflictException;
@@ -29,6 +31,8 @@ use App\Models\Vehicle;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -47,6 +51,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Override;
 use UnitEnum;
 
@@ -456,6 +461,55 @@ class TripResource extends Resource
 
                     DeleteAction::make()
                         ->visible(fn (Trip $record): bool => $record->canBeCancelled()),
+                ]),
+            ])
+            ->bulkActions([
+                BulkActionGroup::make([
+                    BulkAction::make('generateInvoice')
+                        ->label('Facturar Viajes Seleccionados')
+                        ->icon('heroicon-m-document-text')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Generar Factura Comercial')
+                        ->modalDescription('Se generará una factura consolidada para los viajes cerrados seleccionados.')
+                        ->action(function (Collection $records): void {
+                            $requesterIds = $records->pluck('requester_id')->unique();
+                            if ($requesterIds->count() > 1) {
+                                Notification::make()
+                                    ->title('Error al Facturar')
+                                    ->body('Todos los viajes seleccionados deben pertenecer al mismo solicitante.')
+                                    ->danger()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $firstTrip = $records->first();
+                            if (! $firstTrip) {
+                                return;
+                            }
+
+                            try {
+                                $dto = new GenerateInvoiceDTO(
+                                    requesterId: $firstTrip->requester_id,
+                                    tripIds: $records->pluck('id')->toArray(),
+                                );
+
+                                $invoice = app(GenerateInvoiceAction::class)($dto);
+
+                                Notification::make()
+                                    ->title('Factura Generada')
+                                    ->body("Se ha generado la factura {$invoice->invoice_number} exitosamente.")
+                                    ->success()
+                                    ->send();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('Error al Facturar')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
                 ]),
             ]);
     }
