@@ -105,7 +105,10 @@ class TripResource extends Resource
                                     ->options(fn (): array => Requester::query()
                                         ->where('is_active', true)
                                         ->orderBy('name')
-                                        ->pluck('name', 'id')
+                                        ->get()
+                                        ->mapWithKeys(fn (Requester $r): array => [
+                                            $r->id => $r->display_name,
+                                        ])
                                         ->toArray())
                                     ->searchable()
                                     ->preload()
@@ -113,7 +116,7 @@ class TripResource extends Resource
                                     ->disabled(fn (?Trip $record): bool => $record !== null && ! $record->canEditCoreFields())
                                     ->helperText(fn (?Trip $record): string => $record !== null && ! $record->canEditCoreFields()
                                         ? '⚠️ Bloqueado: No se puede modificar el solicitante en viajes activos o finalizados.'
-                                        : 'Entidad o persona que requiere el traslado.'),
+                                        : 'Entidad o persona que requiere el traslado (busca por empresa o contacto).'),
                             ])
                             ->columns([
                                 'sm' => 1,
