@@ -364,102 +364,196 @@
         </div>
 
         {{-- TAB 7: CHECKLIST --}}
-        <div x-show="activeTab === 'checklist'" x-cloak class="space-y-4">
+        <div x-show="activeTab === 'checklist'" x-cloak class="space-y-6">
+            
+            @php
+                $completedSteps = 0;
+                if ($stats['vehicles_count'] > 0) $completedSteps++;
+                if ($stats['drivers_count'] > 0) $completedSteps++;
+                if ($stats['requesters_count'] > 0) $completedSteps++;
+                if ($stats['trips_count'] > 0) $completedSteps++;
+                $progressPercent = (int) round(($completedSteps / 4) * 100);
+            @endphp
+
+            {{-- Progress Summary Banner --}}
             <x-filament::section>
-                <x-slot name="heading">
-                    Checklist de Puesta en Marcha Inicial
-                </x-slot>
-                <x-slot name="description">
-                    Sigue estos 4 pasos esenciales para configurar la operación de la flota desde cero.
-                </x-slot>
-
-                <div class="space-y-4 divide-y divide-gray-100 dark:divide-gray-800">
-
-                    {{-- Step 1 --}}
-                    <div class="flex flex-col justify-between gap-4 pt-4 sm:flex-row sm:items-center">
-                        <div class="flex items-center gap-3">
-                            <x-filament::badge :color="$stats['vehicles_count'] > 0 ? 'success' : 'gray'" size="lg">
-                                {{ $stats['vehicles_count'] > 0 ? '✓ Listo' : 'Paso 1' }}
-                            </x-filament::badge>
-                            <div>
-                                <h4 class="font-bold text-gray-950 dark:text-white">1. Registrar Vehículos en la Flota</h4>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $stats['vehicles_count'] }} vehículo(s) activo(s) registrado(s).
-                                </p>
-                            </div>
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/10 text-base font-bold text-amber-600 dark:text-amber-400">
+                                📋
+                            </span>
+                            <h3 class="text-lg font-bold text-gray-950 dark:text-white">
+                                Progreso de Puesta en Marcha: {{ $completedSteps }} de 4 Pasos
+                            </h3>
                         </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Completa los 4 pasos esenciales para configurar la base de datos operativa y despachar tu primer servicio de transporte.
+                        </p>
+                    </div>
+
+                    <div class="w-full md:w-64 space-y-1.5">
+                        <div class="flex justify-between text-xs font-bold text-gray-700 dark:text-gray-300">
+                            <span>Completado</span>
+                            <span>{{ $progressPercent }}%</span>
+                        </div>
+                        <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                            <div 
+                                class="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-500"
+                                style="width: {{ $progressPercent }}%"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+            </x-filament::section>
+
+            {{-- 4 Step Cards in Grid --}}
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+                {{-- CARD 1: VEHICLES --}}
+                <div class="flex flex-col justify-between rounded-2xl border {{ $stats['vehicles_count'] > 0 ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/50 dark:bg-emerald-950/10' : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900' }} p-6 shadow-sm transition hover:shadow-md">
+                    <div class="space-y-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-2xl">
+                                    🚗
+                                </span>
+                                <div>
+                                    <span class="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Paso 1</span>
+                                    <h4 class="text-base font-bold text-gray-950 dark:text-white">Vehículos de la Flota</h4>
+                                </div>
+                            </div>
+                            <x-filament::badge :color="$stats['vehicles_count'] > 0 ? 'success' : 'gray'" size="md">
+                                {{ $stats['vehicles_count'] > 0 ? '✓ ' . $stats['vehicles_count'] . ' Activo(s)' : 'Pendiente' }}
+                            </x-filament::badge>
+                        </div>
+                        
+                        <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                            Registra los automotores con su placa colombiana, odómetro inicial protegido y tipo de servicio (particular o público para placa blanca).
+                        </p>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            {{ $stats['vehicles_count'] }} vehículo(s) en flota
+                        </span>
                         <x-filament::button
                             tag="a"
                             href="{{ route('filament.admin.resources.vehicles.create') }}"
                             icon="heroicon-m-plus"
-                            color="primary"
+                            color="{{ $stats['vehicles_count'] > 0 ? 'gray' : 'primary' }}"
                             size="sm"
                         >
                             Registrar Vehículo
                         </x-filament::button>
                     </div>
+                </div>
 
-                    {{-- Step 2 --}}
-                    <div class="flex flex-col justify-between gap-4 pt-4 sm:flex-row sm:items-center">
-                        <div class="flex items-center gap-3">
-                            <x-filament::badge :color="$stats['drivers_count'] > 0 ? 'success' : 'gray'" size="lg">
-                                {{ $stats['drivers_count'] > 0 ? '✓ Listo' : 'Paso 2' }}
-                            </x-filament::badge>
-                            <div>
-                                <h4 class="font-bold text-gray-950 dark:text-white">2. Crear Perfiles de Conductores</h4>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $stats['drivers_count'] }} conductor(es) vinculado(s) a cuenta de usuario y licencia.
-                                </p>
+                {{-- CARD 2: DRIVERS --}}
+                <div class="flex flex-col justify-between rounded-2xl border {{ $stats['drivers_count'] > 0 ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/50 dark:bg-emerald-950/10' : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900' }} p-6 shadow-sm transition hover:shadow-md">
+                    <div class="space-y-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-2xl">
+                                    👨‍✈️
+                                </span>
+                                <div>
+                                    <span class="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Paso 2</span>
+                                    <h4 class="text-base font-bold text-gray-950 dark:text-white">Perfiles de Conductores</h4>
+                                </div>
                             </div>
+                            <x-filament::badge :color="$stats['drivers_count'] > 0 ? 'success' : 'gray'" size="md">
+                                {{ $stats['drivers_count'] > 0 ? '✓ ' . $stats['drivers_count'] . ' Activo(s)' : 'Pendiente' }}
+                            </x-filament::badge>
                         </div>
+                        
+                        <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                            Vincula cada conductor a una cuenta de usuario para acceso al panel móvil <code class="rounded bg-gray-100 px-1 py-0.5 text-xs text-amber-700 dark:bg-gray-800 dark:text-amber-300">/driver</code>, documento y licencia RUNT (B1..B3 o C1..C3).
+                        </p>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            {{ $stats['drivers_count'] }} chofer(es) activo(s)
+                        </span>
                         <x-filament::button
                             tag="a"
                             href="{{ route('filament.admin.resources.drivers.create') }}"
                             icon="heroicon-m-plus"
-                            color="primary"
+                            color="{{ $stats['drivers_count'] > 0 ? 'gray' : 'primary' }}"
                             size="sm"
                         >
                             Crear Conductor
                         </x-filament::button>
                     </div>
+                </div>
 
-                    {{-- Step 3 --}}
-                    <div class="flex flex-col justify-between gap-4 pt-4 sm:flex-row sm:items-center">
-                        <div class="flex items-center gap-3">
-                            <x-filament::badge :color="$stats['requesters_count'] > 0 ? 'success' : 'gray'" size="lg">
-                                {{ $stats['requesters_count'] > 0 ? '✓ Listo' : 'Paso 3' }}
-                            </x-filament::badge>
-                            <div>
-                                <h4 class="font-bold text-gray-950 dark:text-white">3. Registrar Clientes / Solicitantes</h4>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $stats['requesters_count'] }} cliente(s) corporativo(s) habilitado(s).
-                                </p>
+                {{-- CARD 3: REQUESTERS --}}
+                <div class="flex flex-col justify-between rounded-2xl border {{ $stats['requesters_count'] > 0 ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/50 dark:bg-emerald-950/10' : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900' }} p-6 shadow-sm transition hover:shadow-md">
+                    <div class="space-y-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-2xl">
+                                    🏢
+                                </span>
+                                <div>
+                                    <span class="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Paso 3</span>
+                                    <h4 class="text-base font-bold text-gray-950 dark:text-white">Clientes y Solicitantes</h4>
+                                </div>
                             </div>
+                            <x-filament::badge :color="$stats['requesters_count'] > 0 ? 'success' : 'gray'" size="md">
+                                {{ $stats['requesters_count'] > 0 ? '✓ ' . $stats['requesters_count'] . ' Activo(s)' : 'Pendiente' }}
+                            </x-filament::badge>
                         </div>
+                        
+                        <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                            Registra las empresas o solicitantes que contratan servicios. Cada cliente agrupará viajes para la posterior liquidación y emisión de facturas.
+                        </p>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            {{ $stats['requesters_count'] }} cliente(s) registrado(s)
+                        </span>
                         <x-filament::button
                             tag="a"
                             href="{{ route('filament.admin.resources.requesters.create') }}"
                             icon="heroicon-m-plus"
-                            color="primary"
+                            color="{{ $stats['requesters_count'] > 0 ? 'gray' : 'primary' }}"
                             size="sm"
                         >
                             Crear Solicitante
                         </x-filament::button>
                     </div>
+                </div>
 
-                    {{-- Step 4 --}}
-                    <div class="flex flex-col justify-between gap-4 pt-4 sm:flex-row sm:items-center">
-                        <div class="flex items-center gap-3">
-                            <x-filament::badge :color="$stats['trips_count'] > 0 ? 'success' : 'gray'" size="lg">
-                                {{ $stats['trips_count'] > 0 ? '✓ Listo' : 'Paso 4' }}
-                            </x-filament::badge>
-                            <div>
-                                <h4 class="font-bold text-gray-950 dark:text-white">4. Despachar el Primer Viaje</h4>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $stats['trips_count'] }} servicio(s) programado(s) en el sistema.
-                                </p>
+                {{-- CARD 4: TRIPS --}}
+                <div class="flex flex-col justify-between rounded-2xl border {{ $stats['trips_count'] > 0 ? 'border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/50 dark:bg-emerald-950/10' : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900' }} p-6 shadow-sm transition hover:shadow-md">
+                    <div class="space-y-4">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-2xl">
+                                    📍
+                                </span>
+                                <div>
+                                    <span class="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Paso 4</span>
+                                    <h4 class="text-base font-bold text-gray-950 dark:text-white">Despacho y Primer Viaje</h4>
+                                </div>
                             </div>
+                            <x-filament::badge :color="$stats['trips_count'] > 0 ? 'success' : 'gray'" size="md">
+                                {{ $stats['trips_count'] > 0 ? '✓ ' . $stats['trips_count'] . ' Viaje(s)' : 'Pendiente' }}
+                            </x-filament::badge>
                         </div>
+                        
+                        <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                            Crea un servicio generando el código <code class="rounded bg-gray-100 px-1 py-0.5 text-xs text-amber-700 dark:bg-gray-800 dark:text-amber-300">TRIP-YYYY-NNNN</code> y asigna vehículo disponible y chofer activo sin conflicto de horario.
+                        </p>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800/80 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            {{ $stats['trips_count'] }} servicio(s) registrado(s)
+                        </span>
                         <x-filament::button
                             tag="a"
                             href="{{ route('filament.admin.resources.trips.create') }}"
@@ -470,9 +564,9 @@
                             Despachar Viaje
                         </x-filament::button>
                     </div>
-
                 </div>
-            </x-filament::section>
+
+            </div>
         </div>
 
     </div>

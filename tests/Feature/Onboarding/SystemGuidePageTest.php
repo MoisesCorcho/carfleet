@@ -30,7 +30,7 @@ describe('Onboarding & System Guide Feature Tests', function (): void {
             ->assertSuccessful()
             ->assertSee('Centro de Documentación y Guía del Sistema')
             ->assertSee('Flujo Extremo a Extremo')
-            ->assertSee('Checklist de Puesta en Marcha Inicial');
+            ->assertSee('Progreso de Puesta en Marcha');
     });
 
     test('onboarding quick start widget renders progress correctly on dashboard', function (): void {
