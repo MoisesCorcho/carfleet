@@ -227,6 +227,83 @@
         .dark .guide-markdown strong {
             color: #f9fafb;
         }
+
+        /* Explicit Checklist Layout & Spacing */
+        .checklist-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 24px 0;
+            border-bottom: 1px solid #e5e7eb;
+            gap: 16px;
+        }
+
+        @media (min-width: 640px) {
+            .checklist-item {
+                flex-direction: row;
+                align-items: center;
+                gap: 24px;
+            }
+        }
+
+        .checklist-item:first-child {
+            padding-top: 16px;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+            padding-bottom: 16px;
+        }
+
+        .checklist-left {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .checklist-text {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .checklist-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #111827;
+            margin: 0;
+        }
+
+        .checklist-desc {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .checklist-actions {
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        @media (min-width: 640px) {
+            .checklist-actions {
+                align-self: center;
+            }
+        }
+
+        .dark .checklist-item {
+            border-bottom-color: #374151;
+        }
+
+        .dark .checklist-title {
+            color: #f9fafb;
+        }
+
+        .dark .checklist-desc {
+            color: #9ca3af;
+        }
     </style>
 
     <div x-data="{ activeTab: 'workflow' }" class="space-y-6">
@@ -373,22 +450,22 @@
                     Sigue estos 4 pasos esenciales para configurar la operación de la flota desde cero.
                 </x-slot>
 
-                <div class="divide-y divide-gray-200 dark:divide-gray-800">
+                <div>
 
                     {{-- Step 1 --}}
-                    <div class="flex flex-col justify-between gap-6 py-6 first:pt-4 last:pb-4 sm:flex-row sm:items-center">
-                        <div class="flex items-start gap-4">
+                    <div class="checklist-item">
+                        <div class="checklist-left">
                             <x-filament::badge :color="$stats['vehicles_count'] > 0 ? 'success' : 'gray'" size="lg">
                                 {{ $stats['vehicles_count'] > 0 ? '✓ Listo' : 'Paso 1' }}
                             </x-filament::badge>
-                            <div class="space-y-1">
-                                <h4 class="text-base font-bold text-gray-950 dark:text-white">1. Registrar Vehículos en la Flota</h4>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <div class="checklist-text">
+                                <h4 class="checklist-title">1. Registrar Vehículos en la Flota</h4>
+                                <p class="checklist-desc">
                                     {{ $stats['vehicles_count'] }} vehículo(s) activo(s) registrado(s) en la base de datos de flota.
                                 </p>
                             </div>
                         </div>
-                        <div class="shrink-0">
+                        <div class="checklist-actions">
                             <x-filament::button
                                 tag="a"
                                 href="{{ route('filament.admin.resources.vehicles.create') }}"
@@ -402,19 +479,19 @@
                     </div>
 
                     {{-- Step 2 --}}
-                    <div class="flex flex-col justify-between gap-6 py-6 sm:flex-row sm:items-center">
-                        <div class="flex items-start gap-4">
+                    <div class="checklist-item">
+                        <div class="checklist-left">
                             <x-filament::badge :color="$stats['drivers_count'] > 0 ? 'success' : 'gray'" size="lg">
                                 {{ $stats['drivers_count'] > 0 ? '✓ Listo' : 'Paso 2' }}
                             </x-filament::badge>
-                            <div class="space-y-1">
-                                <h4 class="text-base font-bold text-gray-950 dark:text-white">2. Crear Perfiles de Conductores</h4>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <div class="checklist-text">
+                                <h4 class="checklist-title">2. Crear Perfiles de Conductores</h4>
+                                <p class="checklist-desc">
                                     {{ $stats['drivers_count'] }} conductor(es) vinculado(s) a cuenta de usuario y licencia RUNT.
                                 </p>
                             </div>
                         </div>
-                        <div class="shrink-0">
+                        <div class="checklist-actions">
                             <x-filament::button
                                 tag="a"
                                 href="{{ route('filament.admin.resources.drivers.create') }}"
@@ -428,19 +505,19 @@
                     </div>
 
                     {{-- Step 3 --}}
-                    <div class="flex flex-col justify-between gap-6 py-6 sm:flex-row sm:items-center">
-                        <div class="flex items-start gap-4">
+                    <div class="checklist-item">
+                        <div class="checklist-left">
                             <x-filament::badge :color="$stats['requesters_count'] > 0 ? 'success' : 'gray'" size="lg">
                                 {{ $stats['requesters_count'] > 0 ? '✓ Listo' : 'Paso 3' }}
                             </x-filament::badge>
-                            <div class="space-y-1">
-                                <h4 class="text-base font-bold text-gray-950 dark:text-white">3. Registrar Clientes / Solicitantes</h4>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <div class="checklist-text">
+                                <h4 class="checklist-title">3. Registrar Clientes / Solicitantes</h4>
+                                <p class="checklist-desc">
                                     {{ $stats['requesters_count'] }} cliente(s) corporativo(s) habilitado(s) para liquidación comercial.
                                 </p>
                             </div>
                         </div>
-                        <div class="shrink-0">
+                        <div class="checklist-actions">
                             <x-filament::button
                                 tag="a"
                                 href="{{ route('filament.admin.resources.requesters.create') }}"
@@ -454,19 +531,19 @@
                     </div>
 
                     {{-- Step 4 --}}
-                    <div class="flex flex-col justify-between gap-6 py-6 sm:flex-row sm:items-center">
-                        <div class="flex items-start gap-4">
+                    <div class="checklist-item">
+                        <div class="checklist-left">
                             <x-filament::badge :color="$stats['trips_count'] > 0 ? 'success' : 'gray'" size="lg">
                                 {{ $stats['trips_count'] > 0 ? '✓ Listo' : 'Paso 4' }}
                             </x-filament::badge>
-                            <div class="space-y-1">
-                                <h4 class="text-base font-bold text-gray-950 dark:text-white">4. Despachar el Primer Viaje</h4>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <div class="checklist-text">
+                                <h4 class="checklist-title">4. Despachar el Primer Viaje</h4>
+                                <p class="checklist-desc">
                                     {{ $stats['trips_count'] }} servicio(s) programado(s) o en curso en el sistema.
                                 </p>
                             </div>
                         </div>
-                        <div class="shrink-0">
+                        <div class="checklist-actions">
                             <x-filament::button
                                 tag="a"
                                 href="{{ route('filament.admin.resources.trips.create') }}"
