@@ -26,6 +26,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -325,9 +326,35 @@ class DriverResource extends Resource
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->using(function (Driver $record, DeleteAction $action): bool {
+                            try {
+                                return (bool) $record->delete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el conductor')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                     RestoreAction::make(),
-                    ForceDeleteAction::make(),
+                    ForceDeleteAction::make()
+                        ->using(function (Driver $record, ForceDeleteAction $action): bool {
+                            try {
+                                return (bool) $record->forceDelete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el conductor')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Opciones del Conductor'),

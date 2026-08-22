@@ -17,7 +17,20 @@ class ViewRequester extends ViewRecord
     {
         return [
             EditAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Requester $record, DeleteAction $action): bool {
+                    try {
+                        return (bool) $record->delete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el solicitante')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
         ];
     }
 }

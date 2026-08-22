@@ -6,7 +6,6 @@ namespace App\Filament\Resources\Drivers\Pages;
 
 use App\Actions\Drivers\UpdateDriverAction;
 use App\DTOs\Drivers\UpsertDriverDTO;
-use App\Exceptions\Drivers\InvalidDriverException;
 use App\Filament\Resources\Drivers\DriverResource;
 use App\Models\Driver;
 use Filament\Actions\DeleteAction;
@@ -26,9 +25,35 @@ class EditDriver extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Driver $record, DeleteAction $action): bool {
+                    try {
+                        return (bool) $record->delete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el conductor')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
             RestoreAction::make(),
-            ForceDeleteAction::make(),
+            ForceDeleteAction::make()
+                ->using(function (Driver $record, ForceDeleteAction $action): bool {
+                    try {
+                        return (bool) $record->forceDelete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el conductor')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
         ];
     }
 
@@ -41,9 +66,9 @@ class EditDriver extends EditRecord
 
         try {
             return $action($record, $dto);
-        } catch (InvalidDriverException $e) {
+        } catch (\DomainException $e) {
             Notification::make()
-                ->title('Error de Actualización')
+                ->title('Error al Actualizar Conductor')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

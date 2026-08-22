@@ -24,6 +24,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -322,7 +323,20 @@ class FuelLogResource extends Resource
                     EditAction::make()
                         ->visible(fn (FuelLog $record): bool => ! $record->isImmutable()),
                     DeleteAction::make()
-                        ->visible(fn (FuelLog $record): bool => ! $record->isImmutable()),
+                        ->visible(fn (FuelLog $record): bool => ! $record->isImmutable())
+                        ->using(function (FuelLog $record, DeleteAction $action): bool {
+                            try {
+                                return (bool) $record->delete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el tanqueo')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Opciones de Tanqueo'),

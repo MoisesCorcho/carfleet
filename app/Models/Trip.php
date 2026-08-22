@@ -215,6 +215,11 @@ class Trip extends Model
         return $this->isClosed() || $this->isCancelled();
     }
 
+    public function canEditCoreFields(): bool
+    {
+        return ! $this->isImmutable() && ! $this->isInProgress() && ! $this->isCompleted();
+    }
+
     public function canBeAssigned(): bool
     {
         return $this->isScheduled() || $this->isAssigned();

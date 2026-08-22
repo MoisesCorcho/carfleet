@@ -6,7 +6,6 @@ namespace App\Filament\Resources\Requesters\Pages;
 
 use App\Actions\Requesters\UpdateRequesterAction;
 use App\DTOs\Requesters\UpsertRequesterDTO;
-use App\Exceptions\Requesters\InvalidRequesterException;
 use App\Filament\Resources\Requesters\RequesterResource;
 use App\Models\Requester;
 use Filament\Actions\DeleteAction;
@@ -26,9 +25,35 @@ class EditRequester extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Requester $record, DeleteAction $action): bool {
+                    try {
+                        return (bool) $record->delete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el solicitante')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
             RestoreAction::make(),
-            ForceDeleteAction::make(),
+            ForceDeleteAction::make()
+                ->using(function (Requester $record, ForceDeleteAction $action): bool {
+                    try {
+                        return (bool) $record->forceDelete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el solicitante')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
         ];
     }
 
@@ -41,9 +66,9 @@ class EditRequester extends EditRecord
 
         try {
             return $action($record, $dto);
-        } catch (InvalidRequesterException $e) {
+        } catch (\DomainException $e) {
             Notification::make()
-                ->title('Error de Actualización')
+                ->title('Error al Actualizar Solicitante')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

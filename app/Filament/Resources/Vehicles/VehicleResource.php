@@ -355,9 +355,35 @@ class VehicleResource extends Resource
                                     ->send();
                             }
                         }),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->using(function (Vehicle $record, DeleteAction $action): bool {
+                            try {
+                                return (bool) $record->delete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el vehículo')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                     RestoreAction::make(),
-                    ForceDeleteAction::make(),
+                    ForceDeleteAction::make()
+                        ->using(function (Vehicle $record, ForceDeleteAction $action): bool {
+                            try {
+                                return (bool) $record->forceDelete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el vehículo')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Opciones del Vehículo'),

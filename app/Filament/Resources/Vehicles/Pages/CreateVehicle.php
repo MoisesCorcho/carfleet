@@ -6,7 +6,6 @@ namespace App\Filament\Resources\Vehicles\Pages;
 
 use App\Actions\Vehicles\RegisterVehicleAction;
 use App\DTOs\Vehicles\UpsertVehicleDTO;
-use App\Exceptions\Vehicles\InvalidMileageException;
 use App\Filament\Resources\Vehicles\VehicleResource;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -25,9 +24,9 @@ class CreateVehicle extends CreateRecord
 
         try {
             return $action($dto);
-        } catch (InvalidMileageException $e) {
+        } catch (\DomainException $e) {
             Notification::make()
-                ->title('Error de Validación')
+                ->title('Error al Registrar Vehículo')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
