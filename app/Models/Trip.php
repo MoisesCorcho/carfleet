@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\Invoices\InvoiceStatusEnum;
 use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
 use App\Exceptions\Trips\InvalidTripStateException;
@@ -268,5 +269,32 @@ class Trip extends Model
             TripStatusEnum::ASIGNADO,
             TripStatusEnum::EN_CURSO,
         ]);
+    }
+
+    public function isInvoiced(): bool
+    {
+        return $this->invoices()
+            ->whereIn('status', [InvoiceStatusEnum::EMITIDA, InvoiceStatusEnum::PAGADA])
+            ->exists();
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeEligibleForInvoicing(Builder $query): Builder
+    {
+        return $query->where('status', TripStatusEnum::CERRADO);
+    }
+
+    /**
+     * @param  Builder<Trip>  $query
+     * @return Builder<Trip>
+     */
+    public function scopeUninvoiced(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('invoices', function (Builder $q): void {
+            $q->whereIn('status', [InvoiceStatusEnum::EMITIDA, InvoiceStatusEnum::PAGADA]);
+        });
     }
 }
