@@ -88,17 +88,40 @@ class VehicleResource extends Resource
                                     ->prefixIcon('heroicon-m-identification')
                                     ->required()
                                     ->maxLength(16)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, callable $set): void {
+                                        if (! $state) {
+                                            return;
+                                        }
+                                        $clean = strtoupper(trim((string) $state));
+                                        if (preg_match('/^[A-Z]{3}[0-9]{3}$/i', $clean) || preg_match('/^[A-Z]{3}[0-9]{2}[A-Z]$/i', $clean)) {
+                                            $set('plate_number', substr($clean, 0, 3).'-'.substr($clean, 3));
+                                        } else {
+                                            $set('plate_number', $clean);
+                                        }
+                                    })
                                     ->regex('/^[A-Z]{3}-?[0-9]{3}$|^[A-Z]{3}-?[0-9]{2}[A-Z]$/i')
                                     ->validationMessages([
-                                        'regex' => 'La placa debe tener un formato válido (ej: ABC-123 o ABC123).',
+                                        'regex' => 'La placa debe tener un formato válido colombiano (ej: ABC-123 o ABC123).',
+                                        'unique' => 'La placa ingresada ya se encuentra registrada en la flota.',
                                     ])
                                     ->unique(ignoreRecord: true)
                                     ->extraInputAttributes(['style' => 'text-transform: uppercase;'])
-                                    ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state)))
+                                    ->dehydrateStateUsing(function (?string $state): ?string {
+                                        if (! $state) {
+                                            return null;
+                                        }
+                                        $clean = strtoupper(trim($state));
+                                        if (preg_match('/^[A-Z]{3}[0-9]{3}$/i', $clean) || preg_match('/^[A-Z]{3}[0-9]{2}[A-Z]$/i', $clean)) {
+                                            return substr($clean, 0, 3).'-'.substr($clean, 3);
+                                        }
+
+                                        return $clean;
+                                    })
                                     ->disabled(fn (?Vehicle $record): bool => $record?->trips()->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists() ?? false)
                                     ->helperText(fn (?Vehicle $record): string => $record?->trips()->whereIn('status', [TripStatusEnum::ASIGNADO, TripStatusEnum::EN_CURSO])->exists()
                                         ? '⚠️ Bloqueado: El vehículo tiene un viaje activo o asignado.'
-                                        : 'Formato alfanumérico oficial del vehículo.'),
+                                        : 'Formato oficial colombiano (con o sin guión; se normalizará automáticamente a ABC-123).'),
 
                                 Select::make('service_type')
                                     ->label('Tipo de Servicio')

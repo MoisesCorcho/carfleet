@@ -111,6 +111,11 @@ class RequesterResource extends Resource
                                     ->prefixIcon('heroicon-m-identification')
                                     ->required()
                                     ->maxLength(32)
+                                    ->regex('/^(?:[0-9]{5,15}(?:-[0-9])?|[A-Z0-9]{5,20})$/i')
+                                    ->validationMessages([
+                                        'regex' => 'El número de documento o NIT solo puede contener números, letras y guión de verificación (ej: 900123456-1 o 1020304050), sin símbolos especiales.',
+                                        'unique' => 'El número de documento o NIT ingresado ya se encuentra registrado para este tipo de documento.',
+                                    ])
                                     ->unique(
                                         ignoreRecord: true,
                                         modifyRuleUsing: fn (Unique $rule, callable $get): Unique => $rule
@@ -119,7 +124,7 @@ class RequesterResource extends Resource
                                     )
                                     ->extraInputAttributes(['style' => 'text-transform: uppercase;'])
                                     ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state)))
-                                    ->helperText('Número de identificación o NIT único sin puntos.'),
+                                    ->helperText('Número de identificación o NIT único sin puntos (ej: 900123456-1 o 1020304050).'),
 
                                 TextInput::make('phone')
                                     ->label('Teléfono de Contacto')

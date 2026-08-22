@@ -16,6 +16,19 @@ class CreateVehicle extends CreateRecord
 {
     protected static string $resource = VehicleResource::class;
 
+    protected function beforeValidate(): void
+    {
+        $plate = $this->data['plate_number'] ?? null;
+        if ($plate) {
+            $clean = strtoupper(trim((string) $plate));
+            if (preg_match('/^[A-Z]{3}[0-9]{3}$/i', $clean) || preg_match('/^[A-Z]{3}[0-9]{2}[A-Z]$/i', $clean)) {
+                $this->data['plate_number'] = substr($clean, 0, 3).'-'.substr($clean, 3);
+            } else {
+                $this->data['plate_number'] = $clean;
+            }
+        }
+    }
+
     #[Override]
     protected function handleRecordCreation(array $data): Model
     {
