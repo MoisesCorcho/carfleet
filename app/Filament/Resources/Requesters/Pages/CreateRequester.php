@@ -6,7 +6,6 @@ namespace App\Filament\Resources\Requesters\Pages;
 
 use App\Actions\Requesters\RegisterRequesterAction;
 use App\DTOs\Requesters\UpsertRequesterDTO;
-use App\Exceptions\Requesters\InvalidRequesterException;
 use App\Filament\Resources\Requesters\RequesterResource;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -25,9 +24,9 @@ class CreateRequester extends CreateRecord
 
         try {
             return $action($dto);
-        } catch (InvalidRequesterException $e) {
+        } catch (\DomainException $e) {
             Notification::make()
-                ->title('Error de Registro')
+                ->title('Error al Registrar Solicitante')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

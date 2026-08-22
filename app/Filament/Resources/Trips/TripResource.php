@@ -105,13 +105,18 @@ class TripResource extends Resource
                                     ->options(fn (): array => Requester::query()
                                         ->where('is_active', true)
                                         ->orderBy('name')
-                                        ->pluck('name', 'id')
+                                        ->get()
+                                        ->mapWithKeys(fn (Requester $r): array => [
+                                            $r->id => $r->display_name,
+                                        ])
                                         ->toArray())
                                     ->searchable()
                                     ->preload()
                                     ->required()
-                                    ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false)
-                                    ->helperText('Entidad o persona que requiere el traslado.'),
+                                    ->disabled(fn (?Trip $record): bool => $record !== null && ! $record->canEditCoreFields())
+                                    ->helperText(fn (?Trip $record): string => $record !== null && ! $record->canEditCoreFields()
+                                        ? '⚠️ Bloqueado: No se puede modificar el solicitante en viajes activos o finalizados.'
+                                        : 'Entidad o persona que requiere el traslado (busca por empresa o contacto).'),
                             ])
                             ->columns([
                                 'sm' => 1,
@@ -128,7 +133,7 @@ class TripResource extends Resource
                                     ->prefixIcon('heroicon-m-map-pin')
                                     ->required()
                                     ->maxLength(128)
-                                    ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false),
+                                    ->disabled(fn (?Trip $record): bool => $record !== null && ! $record->canEditCoreFields()),
 
                                 TextInput::make('destination')
                                     ->label('Destino')
@@ -136,14 +141,14 @@ class TripResource extends Resource
                                     ->prefixIcon('heroicon-m-flag')
                                     ->required()
                                     ->maxLength(128)
-                                    ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false),
+                                    ->disabled(fn (?Trip $record): bool => $record !== null && ! $record->canEditCoreFields()),
 
                                 DateTimePicker::make('scheduled_departure_at')
                                     ->label('Salida Programada')
                                     ->prefixIcon('heroicon-m-calendar')
                                     ->required()
                                     ->native(false)
-                                    ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false),
+                                    ->disabled(fn (?Trip $record): bool => $record !== null && ! $record->canEditCoreFields()),
 
                                 DateTimePicker::make('scheduled_arrival_at')
                                     ->label('Llegada Programada Estimada')
@@ -153,7 +158,7 @@ class TripResource extends Resource
                                     ->validationMessages([
                                         'after' => 'La fecha de llegada estimada debe ser posterior a la fecha de salida programada.',
                                     ])
-                                    ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false),
+                                    ->disabled(fn (?Trip $record): bool => $record !== null && ! $record->canEditCoreFields()),
                             ])
                             ->columns([
                                 'sm' => 1,
@@ -187,8 +192,10 @@ class TripResource extends Resource
                                     })
                                     ->searchable()
                                     ->preload()
-                                    ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false)
-                                    ->helperText('Solo se muestran vehículos en estado Disponible.'),
+                                    ->disabled(fn (?Trip $record): bool => $record !== null && ! $record->canEditCoreFields())
+                                    ->helperText(fn (?Trip $record): string => $record !== null && ! $record->canEditCoreFields()
+                                        ? '⚠️ Bloqueado: Los recursos no se pueden modificar en viajes en curso o finalizados.'
+                                        : 'Solo se muestran vehículos en estado Disponible.'),
 
                                 Select::make('driver_id')
                                     ->label('Conductor Asignado')
@@ -213,8 +220,10 @@ class TripResource extends Resource
                                     })
                                     ->searchable()
                                     ->preload()
-                                    ->disabled(fn (?Trip $record): bool => $record?->isImmutable() ?? false)
-                                    ->helperText('Conductores activos con licencia vigente.'),
+                                    ->disabled(fn (?Trip $record): bool => $record !== null && ! $record->canEditCoreFields())
+                                    ->helperText(fn (?Trip $record): string => $record !== null && ! $record->canEditCoreFields()
+                                        ? '⚠️ Bloqueado: Los recursos no se pueden modificar en viajes en curso o finalizados.'
+                                        : 'Conductores activos con licencia vigente.'),
 
                                 Textarea::make('notes')
                                     ->label('Observaciones / Instrucciones')
@@ -460,7 +469,20 @@ class TripResource extends Resource
                         }),
 
                     DeleteAction::make()
-                        ->visible(fn (Trip $record): bool => $record->canBeCancelled()),
+                        ->visible(fn (Trip $record): bool => $record->canBeCancelled())
+                        ->using(function (Trip $record, DeleteAction $action): bool {
+                            try {
+                                return (bool) $record->delete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el viaje')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                 ]),
             ])
             ->bulkActions([

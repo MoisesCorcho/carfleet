@@ -221,8 +221,12 @@ class ViewAssignedTrip extends ViewRecord
                         ->default(fn (): string => $this->getRecord()->requester?->name ?? ''),
 
                     ViewField::make('signature_data')
-                        ->label('Trazo de Firma')
+                        ->label('Trazo de Firma de Conformidad')
                         ->required()
+                        ->validationMessages([
+                            'required' => 'Debes dibujar la firma de conformidad en el lienzo antes de guardar.',
+                        ])
+                        ->helperText('Dibuja el trazo de la firma sobre el recuadro blanco usando el dedo o el mouse.')
                         ->view('filament.forms.components.signature-pad'),
                 ])
                 ->action(function (array $data): void {

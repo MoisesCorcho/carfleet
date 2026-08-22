@@ -6,7 +6,6 @@ namespace App\Filament\Resources\Vehicles\Pages;
 
 use App\Actions\Vehicles\UpdateVehicleAction;
 use App\DTOs\Vehicles\UpsertVehicleDTO;
-use App\Exceptions\Vehicles\InvalidMileageException;
 use App\Filament\Resources\Vehicles\VehicleResource;
 use App\Models\Vehicle;
 use Filament\Actions\DeleteAction;
@@ -26,10 +25,49 @@ class EditVehicle extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Vehicle $record, DeleteAction $action): bool {
+                    try {
+                        return (bool) $record->delete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el vehículo')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
             RestoreAction::make(),
-            ForceDeleteAction::make(),
+            ForceDeleteAction::make()
+                ->using(function (Vehicle $record, ForceDeleteAction $action): bool {
+                    try {
+                        return (bool) $record->forceDelete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el vehículo')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
         ];
+    }
+
+    protected function beforeValidate(): void
+    {
+        $plate = $this->data['plate_number'] ?? null;
+        if ($plate) {
+            $clean = strtoupper(trim((string) $plate));
+            if (preg_match('/^[A-Z]{3}[0-9]{3}$/i', $clean) || preg_match('/^[A-Z]{3}[0-9]{2}[A-Z]$/i', $clean)) {
+                $this->data['plate_number'] = substr($clean, 0, 3).'-'.substr($clean, 3);
+            } else {
+                $this->data['plate_number'] = $clean;
+            }
+        }
     }
 
     #[Override]
@@ -42,9 +80,9 @@ class EditVehicle extends EditRecord
 
         try {
             return $action($record, $dto);
-        } catch (InvalidMileageException $e) {
+        } catch (\DomainException $e) {
             Notification::make()
-                ->title('Error de Validación')
+                ->title('Error al Actualizar Vehículo')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

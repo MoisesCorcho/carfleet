@@ -6,13 +6,6 @@ namespace App\Filament\Resources\FuelLogs\Pages;
 
 use App\Actions\Fuel\RegisterFuelLogAction;
 use App\DTOs\Fuel\RegisterFuelLogDTO;
-use App\Exceptions\Fuel\FuelVehicleMismatchException;
-use App\Exceptions\Fuel\FutureRefuelDateException;
-use App\Exceptions\Fuel\InvalidFuelCostException;
-use App\Exceptions\Fuel\InvalidFuelDateException;
-use App\Exceptions\Fuel\InvalidFuelMileageException;
-use App\Exceptions\Fuel\InvalidFuelQuantityException;
-use App\Exceptions\Trips\TripImmutableException;
 use App\Filament\Resources\FuelLogs\FuelLogResource;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -31,15 +24,7 @@ class CreateFuelLog extends CreateRecord
 
         try {
             return $action($dto);
-        } catch (
-            InvalidFuelQuantityException|
-            InvalidFuelCostException|
-            InvalidFuelMileageException|
-            InvalidFuelDateException|
-            FutureRefuelDateException|
-            FuelVehicleMismatchException|
-            TripImmutableException $e
-        ) {
+        } catch (\DomainException $e) {
             Notification::make()
                 ->title('Error al Registrar Tanqueo')
                 ->body($e->getMessage())

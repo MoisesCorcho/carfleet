@@ -6,7 +6,6 @@ namespace App\Filament\Resources\Drivers\Pages;
 
 use App\Actions\Drivers\RegisterDriverAction;
 use App\DTOs\Drivers\UpsertDriverDTO;
-use App\Exceptions\Drivers\InvalidDriverException;
 use App\Filament\Resources\Drivers\DriverResource;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -25,9 +24,9 @@ class CreateDriver extends CreateRecord
 
         try {
             return $action($dto);
-        } catch (InvalidDriverException $e) {
+        } catch (\DomainException $e) {
             Notification::make()
-                ->title('Error de Registro')
+                ->title('Error al Registrar Conductor')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

@@ -1,3 +1,19 @@
+@php
+    $statePath = $getStatePath();
+    $hasError = $errors->has($statePath)
+        || $errors->has('signature_data')
+        || $errors->has('data.signature_data')
+        || $errors->has('mountedActionsData.0.signature_data')
+        || $errors->has('mountedActionData.signature_data')
+        || (isset($component) && method_exists($component, 'hasError') && $component->hasError());
+
+    $errorMessage = $errors->first($statePath)
+        ?: ($errors->first('signature_data')
+        ?: ($errors->first('data.signature_data')
+        ?: ($errors->first('mountedActionsData.0.signature_data')
+        ?: $errors->first('mountedActionData.signature_data'))));
+@endphp
+
 <div
     x-data="{
         state: $wire.entangle('{{ $getStatePath() }}'),
@@ -82,7 +98,7 @@
             x-on:click="clearCanvas()"
             class="text-xs font-semibold text-danger-600 dark:text-danger-400 hover:underline inline-flex items-center gap-1 cursor-pointer shrink-0"
         >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="14" height="14" style="width: 14px; height: 14px; min-width: 14px; min-height: 14px; flex-shrink: 0; display: inline-block;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
             Limpiar
@@ -90,8 +106,8 @@
     </div>
 
     <div 
-        class="relative w-full max-w-full overflow-hidden rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-500 p-1 shadow-sm transition-all focus-within:border-primary-500 ring-1 ring-black/5 box-border"
-        style="background-color: #ffffff !important;"
+        class="relative w-full max-w-full overflow-hidden rounded-xl border-2 border-dashed p-1 shadow-sm transition-all focus-within:border-primary-500 ring-1 ring-black/5 box-border {{ $hasError ? 'border-danger-500' : 'border-gray-300 dark:border-gray-500' }}"
+        style="background-color: #ffffff !important; {{ $hasError ? 'border-color: #ef4444 !important; border-width: 2px !important; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;' : '' }}"
     >
         <canvas
             x-ref="canvas"
@@ -109,9 +125,18 @@
             x-transition
             class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-slate-400 font-medium px-2 text-center"
         >
-            ✍️ Estampa aquí la firma con tu dedo
+            ✍️ Estampa aquí la firma con tu dedo o mouse
         </div>
     </div>
+
+    @if ($hasError && $errorMessage)
+        <p class="text-xs font-semibold text-danger-600 dark:text-danger-400 mt-0.5 flex items-center gap-1.5">
+            <svg width="16" height="16" style="width: 16px; height: 16px; min-width: 16px; min-height: 16px; flex-shrink: 0; display: inline-block;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ $errorMessage }}</span>
+        </p>
+    @endif
 
     <input type="hidden" {{ $applyStateBindingModifiers('wire:model') }}="{{ $getStatePath() }}" />
 </div>

@@ -26,6 +26,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -85,6 +86,9 @@ class DriverResource extends Resource
                                     ->preload()
                                     ->required()
                                     ->unique(ignoreRecord: true)
+                                    ->validationMessages([
+                                        'unique' => 'La cuenta de usuario seleccionada ya está asignada a otro conductor.',
+                                    ])
                                     ->prefixIcon('heroicon-m-user')
                                     ->createOptionForm([
                                         TextInput::make('name')
@@ -142,6 +146,11 @@ class DriverResource extends Resource
                                     ->prefixIcon('heroicon-m-identification')
                                     ->required()
                                     ->maxLength(32)
+                                    ->regex('/^[A-Z0-9]{5,20}$/i')
+                                    ->validationMessages([
+                                        'regex' => 'El número de documento solo puede contener letras y números (sin símbolos ni caracteres especiales).',
+                                        'unique' => 'El número de documento ingresado ya se encuentra registrado para este tipo de documento.',
+                                    ])
                                     ->unique(
                                         ignoreRecord: true,
                                         modifyRuleUsing: fn (Unique $rule, callable $get): Unique => $rule->where('document_type', $get('document_type'))
@@ -174,14 +183,19 @@ class DriverResource extends Resource
                             ->schema([
                                 TextInput::make('license_number')
                                     ->label('Número de Licencia')
-                                    ->placeholder('Ej: LIC-87654321')
+                                    ->placeholder('Ej: 1020304050 o LIC-87654321')
                                     ->prefixIcon('heroicon-m-credit-card')
                                     ->required()
                                     ->maxLength(32)
+                                    ->regex('/^[A-Z0-9\-]{5,32}$/i')
+                                    ->validationMessages([
+                                        'regex' => 'El número de licencia solo puede contener números, letras y guiones (sin caracteres especiales).',
+                                        'unique' => 'El número de licencia ingresado ya se encuentra registrado.',
+                                    ])
                                     ->unique(ignoreRecord: true)
                                     ->extraInputAttributes(['style' => 'text-transform: uppercase;'])
                                     ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state)))
-                                    ->helperText('Número único de licencia de tránsito.'),
+                                    ->helperText('Número oficial RUNT (cédula del conductor) o código con guión para licencias legadas.'),
 
                                 Select::make('license_category')
                                     ->label('Categoría de Licencia')
@@ -325,9 +339,35 @@ class DriverResource extends Resource
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->using(function (Driver $record, DeleteAction $action): bool {
+                            try {
+                                return (bool) $record->delete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el conductor')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                     RestoreAction::make(),
-                    ForceDeleteAction::make(),
+                    ForceDeleteAction::make()
+                        ->using(function (Driver $record, ForceDeleteAction $action): bool {
+                            try {
+                                return (bool) $record->forceDelete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el conductor')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Opciones del Conductor'),

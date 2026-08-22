@@ -7,10 +7,6 @@ namespace App\Filament\Resources\Trips\Pages;
 use App\Actions\Trips\AssignTripResourcesAction;
 use App\Enums\Trips\TripStatusEnum;
 use App\Enums\Vehicles\VehicleStatusEnum;
-use App\Exceptions\Trips\DriverNotEligibleException;
-use App\Exceptions\Trips\DriverScheduleConflictException;
-use App\Exceptions\Trips\TripImmutableException;
-use App\Exceptions\Trips\VehicleNotAvailableException;
 use App\Filament\Resources\Trips\TripResource;
 use App\Models\Trip;
 use App\Models\Vehicle;
@@ -30,7 +26,20 @@ class EditTrip extends EditRecord
     {
         return [
             ViewAction::make(),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->using(function (Trip $record, DeleteAction $action): bool {
+                    try {
+                        return (bool) $record->delete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el viaje')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
         ];
     }
 
@@ -88,7 +97,7 @@ class EditTrip extends EditRecord
             }
 
             return $trip->fresh(['requester', 'vehicle', 'driver']);
-        } catch (TripImmutableException|VehicleNotAvailableException|DriverNotEligibleException|DriverScheduleConflictException $e) {
+        } catch (\DomainException $e) {
             Notification::make()
                 ->title('Error al Actualizar Viaje')
                 ->body($e->getMessage())

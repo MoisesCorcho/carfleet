@@ -25,6 +25,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -110,6 +111,11 @@ class RequesterResource extends Resource
                                     ->prefixIcon('heroicon-m-identification')
                                     ->required()
                                     ->maxLength(32)
+                                    ->regex('/^(?:[0-9]{5,15}(?:-[0-9])?|[A-Z0-9]{5,20})$/i')
+                                    ->validationMessages([
+                                        'regex' => 'El número de documento o NIT solo puede contener números, letras y guión de verificación (ej: 900123456-1 o 1020304050), sin símbolos especiales.',
+                                        'unique' => 'El número de documento o NIT ingresado ya se encuentra registrado para este tipo de documento.',
+                                    ])
                                     ->unique(
                                         ignoreRecord: true,
                                         modifyRuleUsing: fn (Unique $rule, callable $get): Unique => $rule
@@ -118,7 +124,7 @@ class RequesterResource extends Resource
                                     )
                                     ->extraInputAttributes(['style' => 'text-transform: uppercase;'])
                                     ->dehydrateStateUsing(fn (?string $state): string => strtoupper(trim((string) $state)))
-                                    ->helperText('Número de identificación o NIT único sin puntos.'),
+                                    ->helperText('Número de identificación o NIT único sin puntos (ej: 900123456-1 o 1020304050).'),
 
                                 TextInput::make('phone')
                                     ->label('Teléfono de Contacto')
@@ -240,9 +246,35 @@ class RequesterResource extends Resource
                 ActionGroup::make([
                     ViewAction::make(),
                     EditAction::make(),
-                    DeleteAction::make(),
+                    DeleteAction::make()
+                        ->using(function (Requester $record, DeleteAction $action): bool {
+                            try {
+                                return (bool) $record->delete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el solicitante')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                     RestoreAction::make(),
-                    ForceDeleteAction::make(),
+                    ForceDeleteAction::make()
+                        ->using(function (Requester $record, ForceDeleteAction $action): bool {
+                            try {
+                                return (bool) $record->forceDelete();
+                            } catch (\DomainException $e) {
+                                Notification::make()
+                                    ->title('No se puede eliminar el solicitante')
+                                    ->body($e->getMessage())
+                                    ->danger()
+                                    ->send();
+
+                                return false;
+                            }
+                        }),
                 ])
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Opciones del Solicitante'),

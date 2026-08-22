@@ -6,13 +6,6 @@ namespace App\Filament\Resources\FuelLogs\Pages;
 
 use App\Actions\Fuel\UpdateFuelLogAction;
 use App\DTOs\Fuel\UpdateFuelLogDTO;
-use App\Exceptions\Fuel\FuelVehicleMismatchException;
-use App\Exceptions\Fuel\FutureRefuelDateException;
-use App\Exceptions\Fuel\InvalidFuelCostException;
-use App\Exceptions\Fuel\InvalidFuelDateException;
-use App\Exceptions\Fuel\InvalidFuelMileageException;
-use App\Exceptions\Fuel\InvalidFuelQuantityException;
-use App\Exceptions\Trips\TripImmutableException;
 use App\Filament\Resources\FuelLogs\FuelLogResource;
 use App\Models\FuelLog;
 use Filament\Actions\DeleteAction;
@@ -31,7 +24,20 @@ class EditFuelLog extends EditRecord
         return [
             ViewAction::make(),
             DeleteAction::make()
-                ->visible(fn (FuelLog $record): bool => ! $record->isImmutable()),
+                ->visible(fn (FuelLog $record): bool => ! $record->isImmutable())
+                ->using(function (FuelLog $record, DeleteAction $action): bool {
+                    try {
+                        return (bool) $record->delete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el tanqueo')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
         ];
     }
 
@@ -43,15 +49,7 @@ class EditFuelLog extends EditRecord
 
         try {
             return $action($dto);
-        } catch (
-            InvalidFuelQuantityException|
-            InvalidFuelCostException|
-            InvalidFuelMileageException|
-            InvalidFuelDateException|
-            FutureRefuelDateException|
-            FuelVehicleMismatchException|
-            TripImmutableException $e
-        ) {
+        } catch (\DomainException $e) {
             Notification::make()
                 ->title('Error al Actualizar Tanqueo')
                 ->body($e->getMessage())

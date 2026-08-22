@@ -166,7 +166,20 @@ class ViewTrip extends ViewRecord
                 ->visible(fn (): bool => ! $this->getRecord()->isImmutable()),
 
             DeleteAction::make()
-                ->visible(fn (): bool => $this->getRecord()->canBeCancelled()),
+                ->visible(fn (): bool => $this->getRecord()->canBeCancelled())
+                ->using(function (Trip $record, DeleteAction $action): bool {
+                    try {
+                        return (bool) $record->delete();
+                    } catch (\DomainException $e) {
+                        Notification::make()
+                            ->title('No se puede eliminar el viaje')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+
+                        return false;
+                    }
+                }),
         ];
     }
 }

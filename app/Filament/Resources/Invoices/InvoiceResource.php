@@ -86,14 +86,17 @@ class InvoiceResource extends Resource
                                     ->options(fn (): array => Requester::query()
                                         ->where('is_active', true)
                                         ->orderBy('name')
-                                        ->pluck('name', 'id')
+                                        ->get()
+                                        ->mapWithKeys(fn (Requester $r): array => [
+                                            $r->id => $r->display_name,
+                                        ])
                                         ->toArray())
                                     ->searchable()
                                     ->preload()
                                     ->required()
                                     ->live()
                                     ->disabled(fn (?Invoice $record): bool => $record !== null)
-                                    ->helperText('Selecciona el cliente al que se consolidarán los servicios.'),
+                                    ->helperText('Selecciona el cliente al que se consolidarán los servicios (busca por empresa o contacto).'),
 
                                 DatePicker::make('issue_date')
                                     ->label('Fecha de Emisión')
