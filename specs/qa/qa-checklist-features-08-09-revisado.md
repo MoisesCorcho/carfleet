@@ -67,7 +67,7 @@ NOTA: Cuando se utiliza en el telefono la aplicacion y se abre la ventana modal 
   - [x] **Combustible Total:** Muestra los galones totales acumulados con el costo consolidado en pesos colombianos (`$ XXX.XXX COP`).
   - [x] **Flota Operativa:** Muestra la relación `Vehículos Activos / Total Vehículos` (ej: `9 / 10`) con icono de camión y color primario.
 - **Lo que NUNCA debe suceder (Invariantes / Edge Cases):**
-  - [ ] **División por Cero:** Si la base de datos no tuviera registros de combustible o estuviera vacía, el widget **debe mostrar `0,00 km/gal` de forma segura** sin arrojar `DivisionByZeroError` ni pantalla de error HTTP 500.
+  - [x] **División por Cero:** Si la base de datos no tuviera registros de combustible o estuviera vacía, el widget **debe mostrar `0,00 km/gal` de forma segura** sin arrojar `DivisionByZeroError` ni pantalla de error HTTP 500.
   - [x] **Viajes No Finalizados:** El conteo de kilómetros no debe sumar distancias de viajes `Programados`, `Asignados` ni `Cancelados`.
 
 ### QA-10.2: Gráfico de Distribución de Estado de la Flota (`FleetStatusDoughnutWidget`)

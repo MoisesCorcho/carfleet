@@ -67,10 +67,24 @@ class TopRequestersChartWidget extends ChartWidget
 
         $labels = [];
         $data = [];
+        $backgroundColors = [];
+        $borderColors = [];
 
-        foreach ($topRequesters as $requester) {
-            $labels[] = $requester->name;
+        $palette = [
+            ['bg' => '#3b82f6', 'border' => '#2563eb'], // Azul primario
+            ['bg' => '#10b981', 'border' => '#059669'], // Verde esmeralda
+            ['bg' => '#f59e0b', 'border' => '#d97706'], // Ámbar / Naranja
+            ['bg' => '#8b5cf6', 'border' => '#7c3aed'], // Violeta
+            ['bg' => '#ec4899', 'border' => '#db2777'], // Rosa
+        ];
+
+        foreach ($topRequesters as $index => $requester) {
+            $labels[] = $requester->display_name;
             $data[] = (int) $requester->trips_count;
+
+            $color = $palette[$index % count($palette)];
+            $backgroundColors[] = $color['bg'];
+            $borderColors[] = $color['border'];
         }
 
         return [
@@ -78,8 +92,8 @@ class TopRequestersChartWidget extends ChartWidget
                 [
                     'label' => 'Viajes Completados',
                     'data' => $data,
-                    'backgroundColor' => '#3b82f6',
-                    'borderColor' => '#2563eb',
+                    'backgroundColor' => $backgroundColors,
+                    'borderColor' => $borderColors,
                     'borderRadius' => 4,
                 ],
             ],
