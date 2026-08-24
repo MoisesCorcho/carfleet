@@ -94,7 +94,6 @@ class FuelLogsRelationManager extends RelationManager
 
                 FileUpload::make('voucher_photo_path')
                     ->label('Foto del Voucher')
-                    ->key(fn (Get $get): string => 'voucher_rel_'.($get('photo_source') ?? 'camera'))
                     ->disk('public')
                     ->directory('evidences/vouchers')
                     ->image()

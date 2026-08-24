@@ -212,7 +212,6 @@ class FuelLogResource extends Resource
 
                                 FileUpload::make('voucher_photo_path')
                                     ->label('Fotografía del Voucher de Combustible')
-                                    ->key(fn (Get $get): string => 'voucher_photo_'.($get('photo_source') ?? 'camera'))
                                     ->image()
                                     ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                                     ->directory('evidences/vouchers')

@@ -229,7 +229,7 @@ class AssignedTripResource extends Resource
                             ->dateTime('d/m/Y H:i')
                             ->color('gray')
                             ->alignEnd(),
-                    ]),
+                    ])->from('md'),
                 ])->space(3),
             ])
             ->defaultSort('scheduled_departure_at', 'desc')
@@ -280,7 +280,6 @@ class AssignedTripResource extends Resource
 
                         FileUpload::make('photo_evidence')
                             ->label('Foto del Odómetro de Salida')
-                            ->key(fn (Get $get): string => 'photo_evidence_start_'.($get('photo_source') ?? 'camera'))
                             ->image()
                             ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                             ->directory('evidences/odometers')
@@ -393,7 +392,6 @@ class AssignedTripResource extends Resource
 
                         FileUpload::make('voucher_photo')
                             ->label('Foto del Voucher / Recibo')
-                            ->key(fn (Get $get): string => 'voucher_photo_driver_'.($get('photo_source') ?? 'camera'))
                             ->image()
                             ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                             ->directory('evidences/vouchers')
@@ -484,7 +482,6 @@ class AssignedTripResource extends Resource
 
                         FileUpload::make('photo_evidence')
                             ->label('Foto del Odómetro de Llegada')
-                            ->key(fn (Get $get): string => 'photo_evidence_finish_'.($get('photo_source') ?? 'camera'))
                             ->image()
                             ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                             ->directory('evidences/odometers')
