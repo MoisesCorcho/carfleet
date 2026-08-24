@@ -82,4 +82,24 @@ class FleetOverviewWidgetTest extends TestCase
             ->assertSee('0,00 km/gal')
             ->assertSee('0,00 gal');
     }
+
+    public function test_fleet_overview_widget_prevents_division_by_zero_when_trips_exist_without_fuel_logs(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($this->adminUser);
+
+        $vehicle = Vehicle::factory()->create(['current_mileage' => 15000]);
+
+        Trip::factory()->closed()->create([
+            'vehicle_id' => $vehicle->id,
+            'distance_traveled' => 500,
+        ]);
+
+        Livewire::test(FleetOverviewWidget::class)
+            ->assertSuccessful()
+            ->assertSee('500 km')
+            ->assertSee('0,00 km/gal')
+            ->assertSee('Sin consumos registrados')
+            ->assertSee('0,00 gal');
+    }
 }

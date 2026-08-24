@@ -73,7 +73,6 @@ class ViewAssignedTrip extends ViewRecord
 
                     FileUpload::make('photo_evidence')
                         ->label('Foto del Odómetro de Salida')
-                        ->key(fn (Get $get): string => 'photo_evidence_view_start_'.($get('photo_source') ?? 'camera'))
                         ->image()
                         ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                         ->directory('evidences/odometers')
@@ -157,7 +156,6 @@ class ViewAssignedTrip extends ViewRecord
 
                     FileUpload::make('photo_evidence')
                         ->label('Foto del Odómetro de Llegada')
-                        ->key(fn (Get $get): string => 'photo_evidence_view_finish_'.($get('photo_source') ?? 'camera'))
                         ->image()
                         ->extraInputAttributes(fn (Get $get): array => ($get('photo_source') ?? 'camera') === 'camera' ? ['capture' => 'environment'] : [])
                         ->directory('evidences/odometers')

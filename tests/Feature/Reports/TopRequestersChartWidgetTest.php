@@ -35,8 +35,8 @@ class TopRequestersChartWidgetTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($this->adminUser);
 
-        $clientA = Requester::factory()->create(['name' => 'Empresa Alfa']);
-        $clientB = Requester::factory()->create(['name' => 'Empresa Beta']);
+        $clientA = Requester::factory()->create(['name' => 'Roberto Sánchez', 'company_name' => 'Consorcio Vial']);
+        $clientB = Requester::factory()->create(['name' => 'Patricia Ortiz', 'company_name' => null]);
 
         // Client A: 3 completed trips
         Trip::factory()->closed()->create(['requester_id' => $clientA->id]);
@@ -46,8 +46,16 @@ class TopRequestersChartWidgetTest extends TestCase
         // Client B: 1 completed trip
         Trip::factory()->closed()->create(['requester_id' => $clientB->id]);
 
-        Livewire::test(TopRequestersChartWidget::class)
+        $test = Livewire::test(TopRequestersChartWidget::class, ['filter' => 'all'])
             ->assertSuccessful();
+
+        $data = (new \ReflectionMethod($test->instance(), 'getData'))->invoke($test->instance());
+
+        $this->assertSame(['Consorcio Vial — Roberto Sánchez', 'Patricia Ortiz'], $data['labels']);
+        $this->assertSame([3, 1], $data['datasets'][0]['data']);
+        $this->assertCount(2, $data['datasets'][0]['backgroundColor']);
+        $this->assertSame('#3b82f6', $data['datasets'][0]['backgroundColor'][0]);
+        $this->assertSame('#10b981', $data['datasets'][0]['backgroundColor'][1]);
     }
 
     public function test_top_requesters_chart_widget_filters_by_selected_time_period(): void
@@ -75,7 +83,7 @@ class TopRequestersChartWidgetTest extends TestCase
             ->assertSuccessful();
 
         $dataMonth = (new \ReflectionMethod($testMonth->instance(), 'getData'))->invoke($testMonth->instance());
-        $this->assertSame(['Cliente Agosto'], $dataMonth['labels']);
+        $this->assertSame([$clientAugust->display_name], $dataMonth['labels']);
         $this->assertSame([1], $dataMonth['datasets'][0]['data']);
 
         // Switch to 'all'
@@ -84,8 +92,8 @@ class TopRequestersChartWidgetTest extends TestCase
 
         $dataAll = (new \ReflectionMethod($testAll->instance(), 'getData'))->invoke($testAll->instance());
         $this->assertCount(2, $dataAll['labels']);
-        $this->assertContains('Cliente Agosto', $dataAll['labels']);
-        $this->assertContains('Cliente Julio', $dataAll['labels']);
+        $this->assertContains($clientAugust->display_name, $dataAll['labels']);
+        $this->assertContains($clientJuly->display_name, $dataAll['labels']);
 
         Carbon::setTestNow();
     }

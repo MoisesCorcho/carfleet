@@ -77,7 +77,6 @@ class EvidencesRelationManager extends RelationManager
 
                 FileUpload::make('file_path')
                     ->label('Fotografía de Evidencia')
-                    ->key(fn (Get $get): string => 'file_path_evidence_'.($get('photo_source') ?? 'camera'))
                     ->disk('public')
                     ->directory('evidences/odometers')
                     ->image()
